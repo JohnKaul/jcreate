@@ -1,0 +1,135 @@
+.It Fl --------------------------------------------------------------------
+.Dd Aug 17 2024
+.Dt jcreate 7
+.Os
+.Au John Kaul
+.It Fl --------------------------------------------------------------------
+.Pp
+.Sh  NAME
+jcreate -- a program to create simple jail.conf jails.
+.Pp
+.Sh  SYNOPSIS
+jcreate.sh <template.conf>
+.Pp
+.Sh  DESCRIPTION
+This script will create a `<jailname>.conf` jail configuration file in `/etc/jail.conf.d/`. This script accepts a config file for the "template" you wish to create.
+.Pp
+This script also has a main configuration file which holds a few necessary variables. The location of the `jcreate.conf` file is located at the same location as the installation directory.
+.Pp
+To get started creating jails in FreeBSD we need first download the userland for the release you want the jail to have. The instructions to download the userland can be found in the FreeBSD handbook (copied here for convience).
+.Pp
+.Sh  USERLAND DOWNLOAD (From the FreeBSD Handbook)
+In principle, a jail only needs a hostname, a root directory, an IP address, and a userland. The userland for the jail can be obtained from the official FreeBSD download servers. Execute the following command to download the userland
+.Bd -literal -offset indent
+  # fetch https://download.freebsd.org/ftp/releases/amd64/amd64/13.2-RELEASE/base.txz -o /usr/local/jails/media/13.2-RELEASE-base.txz
+.Ed
+.Sh  BASIC JAIL CONFIGURATION
+The next step is to create a `jail.conf` file in `/etc/`.
+.Pp
+The `/etc/jail.conf/` should look something like (your needs may very slightly):
+.Bd -literal -offset indent
+    # DEFAULT OPTIONS
+    # (COMMON TO ALL JAILS)
+.Pp
+    # STARTUP/LOGGING
+    exec.start = "/bin/sh /etc/rc";
+    exec.stop  = "/bin/sh /etc/rc.shutdown";
+    exec.consolelog = "/var/log/jail_console_${name}.log";
+.Pp
+    # PERMISSIONS
+    allow.raw_sockets;
+    exec.clean;
+    #mount.devfs;
+    #devfs_ruleset = 5;
+.Pp
+    # PATH/HOSTNAME
+    path = "/usr/local/jails/containers/${name}";
+    host.hostname = "${name}";
+.Pp
+    # VNET/VIMAGE
+    vnet;
+    vnet.interface = "${epair}b";
+.Pp
+    # NETWORKS/INTERFACES
+    $ip             =   "192.168.0.${id}/24";
+    $epair          =   "epair${id}";
+    $gateway        =   "192.168.0.1";
+    $bridge         =   "bridge0";
+.Pp
+    # ADD TO bridge INTERFACE
+    exec.prestart   =   "/sbin/ifconfig ${epair} create up";
+    exec.prestart   +=  "/sbin/ifconfig ${epair}a up descr jail:${name}";
+    exec.prestart   +=  "/sbin/ifconfig ${bridge} addm ${epair}a up";
+    exec.start      +=  "/sbin/ifconfig ${epair}b ${ip} up";
+    exec.start      +=  "/sbin/route add default ${gateway}";
+    exec.poststop   =   "/sbin/ifconfig ${bridge} deletem ${epair}a";
+    exec.poststop   +=  "/sbin/ifconfig ${epair}a destroy";
+.Pp
+    .include "/etc/jail.conf.d/*.conf";
+.Ed
+.Pp
+.Sh  JCREATE CONFIGURATION
+The last steps are to make sure `jcreate.sh` knows where to find the userland we just downloaded.
+.Pp
+The default `jcreate.conf` confuration file should contain the following variables.
+.Bl -tag -width Ds
+.It Fl media.path
+A location to where the userland.
+.Pp
+.It Fl containers.path
+A location where to extract the userland (where the jail will reside)
+.El
+.Pp
+Example jcreate.conf:
+.Bd -literal -offset indent
+    config {
+        media.path=/usr/local/jails/media/14.1-RELEASE-base.txz
+        containers.path=/usr/local/jails/containers
+    }
+.Ed
+.Sh  TEMPLATE CONFIGURATION
+To create a jail `jcreate` needs a few more variables and these are specific to each jail.
+.Bl -tag -width Ds
+.It Fl jail.name REQUIRED
+The name of the jail
+.Pp
+.It Fl jail.epairid REQUIRED
+This is the last few digits of the jails IP address.
+.Pp
+.It Fl jail.mounts OPTIONAL
+The file which contains the mount locations.
+.Pp
+.It Fl jail.config OPTIONAL
+The configuration script to be copied into the jail and executed.
+.Pp
+.It Fl  jail.copyin OPTIONAL
+Files to copy in reletave to `/usr/local`.
+.Pp
+.It Fl  jail.mlock=1 OPTIONAL
+Allow jail to mlock.
+.El
+.Pp
+Example template.conf:
+.Bd -literal -offset indent
+    config {
+       jail.name=mytemplate
+       jail.epairid=64
+       jail.mounts=mounts.conf
+       jail.confg=mytemplate.sh
+    }
+.Ed
+.Pp
+Example mounts.conf:
+.Bd -literal -offset indent
+    mount += [dir1] [dir1] nulfs 0 0
+    mount += [dir2] [dir2] nulfs 0 0
+.Ed
+.Sh  EXAMPLE USAGE
+.Bd -literal -offset indent
+    # jcreate.sh /location/to/jail/templates/mytemplate.conf
+.Ed
+.Sh  HISTORY
+Created for personal use.
+.Pp
+.Sh  AUTHOR
+John Kaul (john.kaul@outlook.com)

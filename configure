@@ -1,0 +1,22 @@
+#!/bin/sh
+
+#: configure
+# This simple script will set options in the makefile.
+
+prefix='$\(HOME\)\/bin'
+for arg in "$@"; do
+    case "$arg" in
+    --prefix=*)
+        prefix=`echo $arg | sed 's/--prefix=//'`
+        ;;
+    --help)
+        echo 'usage: ./configure [options]'
+        echo 'options:'
+        echo '  --prefix=<path>: installation prefix (default $(HOME)/bin)'
+        echo 'all invalid options are silently ignored'
+        exit 0
+        ;;
+    esac
+done
+sed -i '' "s,^PREFIX.*,PREFIX	:=	$prefix,g" makefile
+echo 'configuration complete, type `make` to build.'
