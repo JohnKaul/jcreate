@@ -273,14 +273,8 @@ chmod 754 /home/admin
 # Setup .nexrc
 # {{{
 echo "
-\" Show whitespace and EOL characters
-\" set list
-
 \" Show line numbers
 set nu
-
-\" Hide Line Numbers
-\" set nonu
 
 \" Show matching brackets
 set showmatch
@@ -348,9 +342,6 @@ set backup=N%~
 \" NOTE: The \`^M\` characters below are \`returns\`. You make them by
 \"       typing: \`CTRL-v\` then \`RETURN\`.
 \" --------------------------
-\" \" control-t - twiddle chars ala emacs
-\" map ~ hxpl
-
 \" Invoke \`fmt\` to format the paragraph
 map Q !}fmt
 
@@ -384,7 +375,6 @@ map!  a. hbmmi/\<2h\"zdt.@zywmx\`mP xi
 \" --------------------------
 \"
 \" Abbreviations
-\"
 ab het the
 ab teh the
 ab dont don't
@@ -399,20 +389,11 @@ ab seperate separate
 ab teh the
 ab wnat want
 ab yuo you
-ab lsip lisp
 ab dont don't
 ab thoughtfull thoughtful
 ab couldnt couldn't
 ab certian certain
 ab catagory category
-
-\" Finnish the lazy stuff I dont like to finish typing
-ab Arch Architect
-ab Struct Structural
-ab autocad AutoCAD
-ab acad AutoCAD
-ab Mech Mechanical
-ab Elect Electrical
 ab approx approximately
 
 \"
