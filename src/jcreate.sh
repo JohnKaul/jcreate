@@ -153,7 +153,7 @@ config_get() {
 #   Assert value has been set, otherwise exit.
 ## assert() {
 ## #   val=$1
-##    if [ "${1}" = "__UNDEFINED__" ]; then
+##    if [ "${1}" = __UNDEFINED__ ]; then
 ##       # if we've not found a value, then exit.
 ##       bailout "**ERROR** \"$vall\" value not found in jconfig.conf"
 ##    fi
@@ -188,11 +188,14 @@ jail_setup_script=`basename "$(config_get jail.config $_template_conf)"`
 _setup_script="$(find  ${_template_conf%/*} -type f -name "${jail_setup_script}")"
 
 jail_mounts=`basename "$(config_get jail.mounts $_template_conf)"`
-
 _mounts="$(find  ${_template_conf%/*} -type f -name "${jail_mounts}")"
 
-jail_copyin=`basename "$(config_get jail.copyin $_template_conf)"`
-_copyin="${_template_conf%/*}/$jail_copyin"
+jail_copyin="$(config_get jail.copyin $_template_conf)"
+if [ "${jail_copyin}" != __UNDEFINED__ ]; then
+   _copyin="${_template_conf%/*}/`basename $jail_copyin`"
+fi
+
+jail_preconfig="$(config_get jail.preconfig $_template_conf)"
 
 #adminuser="$(config_get jail.adminuser $_template_conf)"
 #adminpswd="$(config_get jail.adminpswd $_template_conf)"
@@ -204,25 +207,25 @@ _copyin="${_template_conf%/*}/$jail_copyin"
 #assert TTTuserland_media_path
 #assert "container_path"
 
-if [ "${userland_media_path}" = "__UNDEFINED__" ]; then
+if [ "${userland_media_path}" = __UNDEFINED__ ]; then
    # if we've not found a value, then exit.
    echo "**ERROR** \"media.path\" value not found in jconfig.ini"
    exit 1
 fi
 
-if [ "${container_path}" = "__UNDEFINED__" ]; then
+if [ "${container_path}" = __UNDEFINED__ ]; then
    # if we've not found a value, then exit.
    echo "**ERROR** \"container.path\" value not found in jconfig.ini"
    exit 1
 fi
 
-if [ "${jail_name}" = "__UNDEFINED__" ]; then
+if [ "${jail_name}" = __UNDEFINED__ ]; then
    # if we've not found a value, then exit.
    echo "**ERROR** \"jail.name\" value not found in jconfig.ini"
    exit 1
 fi
 
-if [ "${jail_epairid}" = "__UNDEFINED__" ]; then
+if [ "${jail_epairid}" = __UNDEFINED__ ]; then
    # if we've not found a value, then exit.
    echo "**ERROR** \"jail.epairid\" value not found in jconfig.ini"
    exit 1
@@ -251,6 +254,11 @@ cp /etc/localtime $container_path/$jail_name/etc/localtime
 # Update to latest patch.
 # freebsd-update -b $container_path/ fetch install
 
+# Run preconfiguration script if any.
+if [ "${jail_preconfig}" != __UNDEFINED__ ]; then
+        . "${jail_preconfig}"
+fi
+
 # Copy in the `copyin` directory.
 if [ "${_copyin}" != "" ]; then
    echo "Copying in configurations"
@@ -260,6 +268,28 @@ fi
 # Ensure we are at the same location as we were when the script was called.
 cd ${cwd}
 
+# Create a minimal jail.conf file to start and configure the jail with the setup script.
+#{{{
+# Create the jail.conf file.
+echo "
+$jail_name {
+  # NETWORKS/INTERFACES
+  \$id = "${jail_epairid}";
+}" > $_jail_conf_file
+#}}}
+
+# Run the jail configuration script
+if [ "${_setup_script}" != "" ]; then
+   echo "Configuring jail"
+#   sed "s,adminuser,adminuser=\"${adminuser}\",g" $_setup_script
+   cp $_setup_script $container_path/$jail_name/jailsetup.sh
+   chown root:wheel $container_path/$jail_name/jailsetup.sh
+   service jail start $jail_name
+   jexec $jail_name '/jailsetup.sh'
+   service jail stop $jail_name
+fi
+
+# Recreate the jail.conf file, for the configured jail, with the specified mountings.
 echo "Creating the jail.conf file."
 #{{{
 # Create the jail.conf file.
@@ -288,9 +318,8 @@ $jail_name {
 " > $_jail_conf_file
 
 #echo "Jail Mlock: ${jail_mlock}"
-if [ ${jail_mlock} -eq 1 ]; then
-   echo "  allow.mlock = 1;" >> $_jail_conf_file
-   echo "  ip6 = inherit;" >> $_jail_conf_file
+if [ "${jail_mlock}" == "1" ]; then
+   echo "  allow.mlock;" >> $_jail_conf_file
 fi
 
 #echo "Jail mounts: ${_mounts}"
@@ -304,18 +333,8 @@ fi
 echo "}" >> $_jail_conf_file
 #}}}
 
-# Run the jail configuration script
-if [ "${_setup_script}" != "" ]; then
-   echo "Configuring jail"
-#   sed "s,adminuser,adminuser=\"${adminuser}\",g" $_setup_script
-   cp $_setup_script $container_path/$jail_name/jailsetup.sh
-   chown root:wheel $container_path/$jail_name/jailsetup.sh
-   service jail start $jail_name
-   jexec $jail_name '/jailsetup.sh'
-fi
-
 ## # set the admin user and admin password
-## if [ "${adminusr}" -ne "__UNDEFINED__"] && [ "${adminpswd}" -ne "__UNDEFINED__" ]; then
+## if [ "${adminusr}" -ne __UNDEFINED__] && [ "${adminpswd}" -ne __UNDEFINED__ ]; then
 ##         echo "Adding admin user: ${adminuser}"
 ##         echo "#!/bin/sh
 ##         pw user add -n $adminuser -d /home/$adminuser -G wheel -s /bin/csh
@@ -346,7 +365,7 @@ printf -- " -- Maintence --\n"
 printf -- "To start the jail\t: doas service jail start %s\n" "${jail_name}"
 printf -- "To execute the jail\t: doas jexec %s\n" "${jail_name}"
 printf -- "To destroy the jail\t: doas jdestroy.sh %s\n" "${jail_name}"
-## if [ "${adminusr}" -ne "__UNDEFINED__"] && [ "${adminpswd}" -ne "__UNDEFINED__" ]; then
+## if [ "${adminusr}" -ne __UNDEFINED__] && [ "${adminpswd}" -ne __UNDEFINED__ ]; then
 ##         printf -- "To copy your public key to the new jail:\n"
 ##         printf -- "\tssh-copy-id -i ~/.ssh/id_ed25519.pub $adminuser@192.168.0.%s\n" "${jail_epairid}"
 ## fi
