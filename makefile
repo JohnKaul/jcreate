@@ -46,7 +46,7 @@ install:
 	@cp $(SRCDIR)/jcreate.conf $(PREFIX)/
 	@$(SED) 's,~/bin/,$(PREFIX),g' $(SRCDIR)/jcreate.sh > $(PREFIX)/jcreate.sh
 	@if [ ! -d $(PREFIX)/man/man7 ]; then mkdir -p $(PREFIX)/man/man7; fi
-	@cp ./doc/jcreate.7.md $(PREFIX)/man/man7/jcreate.7
+	@cp ./doc/jcreate.7 $(PREFIX)/man/man7/jcreate.7
 
 uninstall: remove
 remove:
