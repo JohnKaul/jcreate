@@ -182,20 +182,44 @@ container_path="$(config_get containers.path $_jcreate_conf)"
 jail_name="$(config_get jail.name $_template_conf)"
 jail_epairid="$(config_get jail.epairid $_template_conf)"
 
-jail_mlock="$(config_get jail.mlock $_template_conf)"
-
+# jail.config --
+# This file will list all the different components we need to
+# configure the jail.
 jail_setup_script=`basename "$(config_get jail.config $_template_conf)"`
 _setup_script="$(find  ${_template_conf%/*} -type f -name "${jail_setup_script}")"
 
+# jail.mlock --
+# Used to enable `mlock` on the jail. -i.e. a setting in the
+# `jail.conf` file.
+jail_mlock="$(config_get jail.mlock $_template_conf)"
+
+# jail.mounts --
+# Used to create mount points inside the jail.
 jail_mounts=`basename "$(config_get jail.mounts $_template_conf)"`
 _mounts="$(find  ${_template_conf%/*} -type f -name "${jail_mounts}")"
 
+# jail.copyin --
+# This is used to copy in configuration files for the setup script
 jail_copyin="$(config_get jail.copyin $_template_conf)"
 if [ "${jail_copyin}" != __UNDEFINED__ ]; then
    _copyin="${_template_conf%/*}/`basename $jail_copyin`"
 fi
 
-jail_preconfig="$(config_get jail.preconfig $_template_conf)"
+# jail.copypost --
+# Used to copy in some post jail configuration files after the jail
+# has been created and configured. -e.g. A `plexdata` folder.
+jail_copypost="$(config_get jail.copypost $_template_conf)"
+if [ "${jail_copyin}" != __UNDEFINED__ ]; then
+   _copypost="${_template_conf%/*}/`basename $jail_copypost`"
+fi
+
+#jail_preconfig="$(config_get jail.preconfig $_template_conf)"
+
+# jail.msg --
+# This is used to display a message after the jail has been setup.
+# -e.g. An activation key or further setup instructions.
+jail_msg=`basename "$(config_get jail.msg $_template_conf)"`
+_message="$(find  ${_template_conf%/*} -type f -name "${jail_msg}")"
 
 #adminuser="$(config_get jail.adminuser $_template_conf)"
 #adminpswd="$(config_get jail.adminpswd $_template_conf)"
@@ -254,11 +278,12 @@ cp /etc/localtime $container_path/$jail_name/etc/localtime
 # Update to latest patch.
 # freebsd-update -b $container_path/ fetch install
 
-# Run preconfiguration script if any.
-if [ "${jail_preconfig}" != __UNDEFINED__ ]; then
-        . "${jail_preconfig}"
-fi
+## Run preconfiguration script if any.
+#if [ "${jail_preconfig}" != __UNDEFINED__ ]; then
+#        . "${jail_preconfig}"
+#fi
 
+# jail.copyin --
 # Copy in the `copyin` directory.
 if [ "${_copyin}" != "" ]; then
    echo "Copying in configurations"
@@ -278,6 +303,7 @@ $jail_name {
 }" > $_jail_conf_file
 #}}}
 
+# jail.conf --
 # Run the jail configuration script
 if [ "${_setup_script}" != "" ]; then
    echo "Configuring jail"
@@ -319,6 +345,7 @@ $jail_name {
 
 #echo "Jail Mlock: ${jail_mlock}"
 if [ "${jail_mlock}" == "1" ]; then
+   echo "  exec.stop  = \"\";" >> $_jail_conf_file
    echo "  allow.mlock;" >> $_jail_conf_file
 fi
 
@@ -332,6 +359,13 @@ if [ "${_mounts}" != "" ]; then
 fi
 echo "}" >> $_jail_conf_file
 #}}}
+
+# jail.copypost --
+# Copy in the `copypost` directory.
+if [ "${_copypost}" != "" ]; then
+   echo "Copying in configurations (post setup)"
+   cd $_copypost/ ; tar cf - . | ( tar xf - -C $container_path/$jail_name/usr/local/ )
+fi
 
 ## # set the admin user and admin password
 ## if [ "${adminusr}" -ne __UNDEFINED__] && [ "${adminpswd}" -ne __UNDEFINED__ ]; then
@@ -369,3 +403,12 @@ printf -- "To destroy the jail\t: doas jdestroy.sh %s\n" "${jail_name}"
 ##         printf -- "To copy your public key to the new jail:\n"
 ##         printf -- "\tssh-copy-id -i ~/.ssh/id_ed25519.pub $adminuser@192.168.0.%s\n" "${jail_epairid}"
 ## fi
+
+# jail.msg --
+# Read the message file and echo the results
+if [ "${_message}" != "" ]; then
+   cat "${_message}" | while read line
+    do
+        echo "$line"
+    done
+fi
