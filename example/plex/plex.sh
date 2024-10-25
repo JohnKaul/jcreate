@@ -30,10 +30,19 @@ echo "Install package rsync"
 # `fetch` could also be used so this may not be necessary.
 pkg install -y rsync
 
+echo "Install package mbuffer"
+pkg install -y mbuffer
+
 echo "Intall git-tiny"
 # used to pull possible update scripts or other misc.
 # `fetch` could also be used so this may not be necessary.
 pkg install -y git-tiny
+
+echo "Install package yt-dlp"
+pkg install -y yt-dlp
+
+echo "Install package id3v2"
+pkg install -y id3v2
 
 echo "Install package openssh"
 # This is used to allow for admin user to SSH into jail.
@@ -53,8 +62,14 @@ pw usermod -n plex -G mediaserver
 echo "Clean package installation"
 pkg clean -y
 
-# --------------- BEGIN USERSETUP --------------
+# CRON
+# setup a cronjob to do package upgrade every Monday at 00
+echo "Setting a cronjob for package upgrade and update every Monday at 00"
+echo "#" >> /etc/crontab
+echo "# Issue a pkg upgrade Monday at noon." >> /etc/crontab
+echo "0 	0 	* 	* 	2 	root	pkg upgrade -y && pkg update" >> /etc/crontab
 
+# ------------------ USERSETUP -----------------
 # Users
 echo "Setting up admin user."
 # {{{
@@ -256,7 +271,7 @@ chmod 644 /home/admin/.cshrc
 # }}}
 # }}}
 
-# SSH
+# ------------------ SSH SETUP -----------------
 echo "Setting up SSH access."
 # {{{
 #touch /etc/local/etc/ssh/sshd_config
@@ -293,5 +308,3 @@ echo "  Starting OpenSSH"
 service openssh start || true
 service openssh restart || true
 # }}}
-
-# ---------------- END USER SETUP ---------------
