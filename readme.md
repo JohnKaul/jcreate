@@ -17,18 +17,17 @@ A few shell scripts to create/destroy classic jails in FreeBSD with a
 `jail.conf` file located in `/etc/jail.conf.d/`.
 
 These scripts are not very robust and/but should offer a very
-simplistic jail manager. The jail configurations are done with a
+simplistic jail creation tool. The jail configurations are done with a
 user supplied script which is copied in and run. 
 
-Configutation is done with a few simple config files; 1. for the
-userland location 2. another for the "jailname" type.  The location of
-the `jcreate.conf` file (userland location) is located at the same
-location as the installation directory.
+Jail creating configutation is done with a few simple config files; 
+1. for the userland location (where to get and extract the userland from/to)
+2. another for the jail type (name of jail, mount points, etc.)
 
 ## BASIC JAIL CONFIGURATION
 We first need to establish some defaults in the `jail.conf` file in `/etc/`.
 
-The `/etc/jail.conf/` should look something like (your needs may very slightly):
+The `/etc/jail.conf` should look something like (your needs may very slightly):
 ```script
     # DEFAULT OPTIONS
     # (COMMON TO ALL JAILS)
@@ -71,31 +70,27 @@ The `/etc/jail.conf/` should look something like (your needs may very slightly):
 ```
 
 ## JCREATE CONFIGURATION
-Configuration for `jcreate.sh` is only so the script knows where to
-find the userland.
+Configuration for `jcreate` is only so the script knows where to
+find the userland and where to extract it to.
 
 The default `jcreate.conf` confuration file should contain the following variables.  
 
--media.path
-A location to where the userland.
-
--containers.path
-A location where to extract the userland (where the jail will reside)
+* `media.path` (REQUIRED) - A location to where the userland.
+* `containers.path` (REQUIRED) - A location where to extract the userland (where the jail will reside)
+* `containers.conf` (REQUIRED) - A location where to store the jail configuration files.
 
 ## TEMPLATE CONFIGURATION
 To create a jail, `jcreate` needs a few more variables and these are specific to each jail.
 
--jail.name REQUIRED
-The name of the jail
-
--jail.epairid REQUIRED
-This is the last few digits of the jails IP address.
-
--jail.mounts OPTIONAL
-The file which contains the mount locations.
-
--jail.config OPTIONAL
-The configuration script to be copied into the jail and executed.
+* `jail.name` (REQUIRED) - The name of the jail
+* `jail.epairid` REQUIRED - This is the last few digits of the jails IP address.
+* `jail.mounts` (OPTIONAL) - The file which contains the mount locations.
+* `jail.config` (OPTIONAL) - The configuration script to be copied into the jail and executed.
+* `jail.mlock=1` (OPTIONAL) - Allow jail to mlock.
+* `jail.systemv=1` (OPTIONAL) - Allow all three `sysvmsg`, `sysvsem`, and `sysvshm` options.
+* `jail.sysvmsg=new` (OPTIONAL) - Allow access to SYSV IPC message primitives.  If set to “inherit”, all IPC objects on the system are visible to this jail, whether they were created by the jail itself, the base system, or other jails.  If set to “new”, the jail will have its own key namespace, and can only see the objects that it has created; the system (or parent jail) has access to the jail's objects, but not to its keys.  If set to “disable”, the jail cannot perform any sysvmsg-related system calls.
+* `jail.sysvsem=new` (OPTIONAL) - Allow access to SYSV IPC semaphore and shared memory primitives, in the same manner as sysvmsg.
+* `jail.sysvshm=new` (OPTIONAL) - Allow access to SYSV IPC semaphore and shared memory primitives, in the same manner as sysvmsg.
 
 A template with only the required vaiables, `jcreate` will create a conf file that will look as simple as:
 ```
@@ -112,7 +107,7 @@ simple `configure` script to change that location.
 
 ```bash
 $ cd jcreate
-$ make install
+$ doas make install
 ```
 
 ## CONTRIBUTION GUIDELINES
