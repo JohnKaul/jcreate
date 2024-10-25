@@ -18,8 +18,9 @@ SED		:=	sed
 #
 SRCDIR  = src
 DOCDIR 	= doc
-PREFIX	:=	$(HOME)/bin
+PREFIX	:=	/usr/local/bin
 MANPATH = /usr/local/share/man/man7
+CONFPATH = /usr/local/etc
 
 PROJECTNAME = jcreate
 
@@ -27,7 +28,8 @@ PROJECTNAME = jcreate
 # files
 # ==============================================================
 #
-SOURCES =	$(SRCDIR)/jcreate.sh \
+SOURCES =	\
+		$(SRCDIR)/jcreate.sh \
 		$(SRCDIR)/jdestroy.sh
 
 # ==============================================================
@@ -41,19 +43,24 @@ $(PROJECTNAME) :
 	$(CC) $(CFLAGS) $(SOURCES)
 
 install:
-	@echo "Installing jcreate to: $(PREFIX)"
-	@cp $(SRCDIR)/jdestroy.sh $(PREFIX)/
-	@cp $(SRCDIR)/jcreate.conf $(PREFIX)/
-	@$(SED) 's,~/bin/,$(PREFIX),g' $(SRCDIR)/jcreate.sh > $(PREFIX)/jcreate.sh
-	@if [ ! -d $(PREFIX)/man/man7 ]; then mkdir -p $(PREFIX)/man/man7; fi
-	@cp ./doc/jcreate.7 $(PREFIX)/man/man7/jcreate.7
+	@echo "Installing $(PROJECTNAME) to: $(PREFIX)"
+	@$(SED) 's,/usr/local/etc/,$(CONFPATH),g' $(SRCDIR)/jdestroy.sh > $(PREFIX)/jdestroy
+	@cp $(SRCDIR)/$(PROJECTNAME).conf $(CONFPATH)/$(PROJECTNAME).conf
+	@$(SED) 's,/usr/local/etc/,$(CONFPATH),g' $(SRCDIR)/$(PROJECTNAME).sh > $(PREFIX)/$(PROJECTNAME)
+	@$(CC) $(CFLAGS) $(PREFIX)/$(PROJECTNAME)
+#-X- 	@if [ ! -d $(MANPATH) ]; then mkdir -p $(MANPATH); fi
+	@cp $(DOCDIR)/$(PROJECTNAME).7 $(MANPATH)/$(PROJECTNAME).7
 
 uninstall: remove
 remove:
-	@echo "Uninstalling jcreate from: $(INSTALLDIR)"
-	@if [ -f $(PREFIX)/jcreate.sh ]; then rm $(PREFIX)/jcreate.sh; fi
-	@if [ -f $(PREFIX)/jdestroy.sh ]; then rm $(PREFIX)/jdestroy.sh; fi
-	@if [ -f $(PREFIX)/jcreate.conf ]; then rm $(PREFIX)/jcreate.conf; fi
-	@if [ -f $(PREFIX)/man/man7/jcreate.7 ]; then rm $(PREFIX)/man/man7/jcreate.7; fi
+	@echo "Uninstalling $(PROJECTNAME) from: $(INSTALLDIR)"
+	# jcreate
+	@if [ -f $(PREFIX)/$(PROJECTNAME) ]; then rm $(PREFIX)/$(PROJECTNAME); fi
+	# jdestroy
+	@if [ -f $(PREFIX)/jdestroy ]; then rm $(PREFIX)/jdestroy; fi
+	# jcreate.conf
+	@if [ -f $(CONFPATH)/$(PROJECTNAME).conf ]; then rm $(CONFPATH)/$(PROJECTNAME).conf; fi
+	# manpage
+	@if [ -f $(MANPATH)/$(PROJECTNAME).7 ]; then rm $(MANPATH)/$(PROJECTNAME).7; fi
 
 # vim: set noet set ff=unix
