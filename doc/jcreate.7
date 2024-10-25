@@ -21,7 +21,7 @@ To get started creating jails in FreeBSD we need first download the userland for
 .Sh  USERLAND DOWNLOAD (From the FreeBSD Handbook)
 In principle, a jail only needs a hostname, a root directory, an IP address, and a userland. The userland for the jail can be obtained from the official FreeBSD download servers. Execute the following command to download the userland
 .Bd -literal -offset indent
-  # fetch https://download.freebsd.org/ftp/releases/amd64/amd64/13.2-RELEASE/base.txz -o /usr/local/jails/media/13.2-RELEASE-base.txz
+  # fetch https://download.freebsd.org/ftp/releases/amd64/amd64/14.1-RELEASE/base.txz -o /usr/local/jails/media/14.1-RELEASE-base.txz
 .Ed
 .Sh  BASIC JAIL CONFIGURATION
 The next step is to create a `jail.conf` file in `/etc/`.
@@ -78,6 +78,9 @@ A location to where the userland.
 .Pp
 .It Fl containers.path
 A location where to extract the userland (where the jail will reside)
+.Pp
+.It Fl containers.conf
+A location where to keep the jail configuration files (EX: /etc/jail.conf.d)
 .El
 .Pp
 Example jcreate.conf:
@@ -90,23 +93,36 @@ Example jcreate.conf:
 .Sh  TEMPLATE CONFIGURATION
 To create a jail `jcreate` needs a few more variables and these are specific to each jail.
 .Bl -tag -width Ds
-.It Fl jail.name REQUIRED
+.It Fl jail.name (REQUIRED)
 The name of the jail
 .Pp
-.It Fl jail.epairid REQUIRED
+.It Fl jail.epairid (REQUIRED)
 This is the last few digits of the jails IP address.
 .Pp
-.It Fl jail.mounts OPTIONAL
+.It Fl jail.mounts (OPTIONAL)
 The file which contains the mount locations.
 .Pp
-.It Fl jail.config OPTIONAL
+.It Fl jail.config (OPTIONAL)
 The configuration script to be copied into the jail and executed.
 .Pp
-.It Fl  jail.copyin OPTIONAL
+.It Fl  jail.copyin (OPTIONAL)
 Files to copy in reletave to `/usr/local`.
 .Pp
-.It Fl  jail.mlock=1 OPTIONAL
+.It Fl  jail.mlock=1 (OPTIONAL)
 Allow jail to mlock.
+.Pp
+.It Fl  jail.systemv=1 (OPTIONAL)
+Allow all three `sysvmsg`, `sysvsem`, and `sysvshm` options.
+.Pp
+.It Fl  jail.sysvmsg=new (OPTIONAL)
+Allow access to SYSV IPC message primitives.  If set to “inherit”, all IPC objects on the system are visible to this jail, whether they were created by the jail itself, the base system, or other jails.  If set to “new”, the jail will have its own key namespace, and can only see the objects that it has created; the system (or parent jail) has access to the jail's objects, but not to its keys.  If set to “disable”, the jail cannot perform any sysvmsg-related system calls.
+.Pp
+.It Fl  jail.sysvsem=new (OPTIONAL)
+Allow access to SYSV IPC semaphore and shared memory primitives, in the same manner as sysvmsg.
+.Pp
+.It Fl  jail.sysvshm=new (OPTIONAL)
+Allow access to SYSV IPC semaphore and shared memory primitives, in the same manner as sysvmsg.
+.Pp
 .El
 .Pp
 Example template.conf:
@@ -121,12 +137,12 @@ Example template.conf:
 .Pp
 Example mounts.conf:
 .Bd -literal -offset indent
-    mount += [dir1] [dir1] nulfs 0 0
-    mount += [dir2] [dir2] nulfs 0 0
+    mount += \\"[dir1] [dir1] nulfs 0 0\\";
+    mount += \\"[dir2] [dir2] nulfs 0 0\\";
 .Ed
 .Sh  EXAMPLE USAGE
 .Bd -literal -offset indent
-    # jcreate.sh /location/to/jail/templates/mytemplate.conf
+    # jcreate /location/to/jail/templates/mytemplate.conf
 .Ed
 .Sh  HISTORY
 Created for personal use.
