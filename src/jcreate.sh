@@ -74,7 +74,7 @@
 #            $id = "210";
 #
 #            # MOUNTS
-#            mount += "<source>  <dest> ...;
+#            mount += "<source>  <dest> ...";
 #        }
 #        ---->% PLEX.CONF
 #
@@ -111,303 +111,473 @@
 #        echo "Installing \"DOAS\".
 #        pkg install -y doas
 #        ...
-#
 
 ##
-## Support Functions
-# {{{
+## Support procedures.
 
-PROGNAME=`basename $0`
-# Bail out and exit.
-bailout() {
-    echo "**ERROR** $PROGNAME: $*" >&2
-    exit 1
+# err --
+#   all error messages should be directed to `stderr`.
+# EX
+#   if ! do_something; then
+#       err "unable to do_something"
+#       exit 1
+#   fi
+err() {     #{{{
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] *ERROR*: $*" >&2
+    return 0
 }
+#}}}
 
 # Bail out if we don't have root privileges.
-test_root() {
-if [ $(id -u) -ne 0 ]; then
-	bailout "This script must be run as root or else jail will fail to be created."
-    fi
+test_root() {           #{{{
+        if [ $(id -u) -ne 0 ]; then
+                err "This script must be run as root or else jail will fail to be created."
+                exit 1
+        fi
 }
+#}}}
 
-# config_read_file ---
+# prompt --
+#   Wrapper to print messages.
+prompt() {     #{{{
+#    printf -- "  %s\n" $1
+#    printf " %-30s\n" $1
+    echo "$*" >&2
+}
+#}}}
+
+# validate --
+#   validate a variable is either a directory or file (and is readable).
+# EX
+#   if ! _validate "$_source" ; then
+#       exit 1
+#   fi
+validate() {        #{{{
+   local _source
+   _source=$1
+
+   if [ -f "$_source" ] || [ -d "$_source" ]; then
+       if [ ! -r "$_source" ]; then
+           err "Source not readable: ${_source}"
+           return 1
+       fi
+#       return 0
+   else
+       err "source not valid: $*"
+       return 1
+   fi
+}
+#}}}
+
+# assert --
+#   Assert a variable is NOT empty.
+# EX
+#   if _assert "$_sourcefile" ; then
+#       do_something
+#   else
+#       err "Missing variable \"_sourcefile\""
+#       exit 1
+#   fi
+assert() {      #{{{
+   local _source
+   _source=$1
+
+   if [ -z $_source ]; then 
+       return 1 
+   fi
+#   return 0
+}
+#}}}
+
+# config_read_file --
 #    Read a file and look for a value.
-# XXX:
-# 1. Return 0 instead of string.
-config_read_file() {
-    (grep -E "${2}=" -m 1 "${1}" 2>/dev/null || echo "VAR=__UNDEFINED__") | head -n 1 | cut -d '=' -f 2-;
+config_read_file() {        #{{{
+    (grep -E "${2}=" -m 1 "${1}" 2>/dev/null) | head -n 1 | cut -d '=' -f 2-;
 }
+#}}}
 
-# cofig_get ---
-#   A wrapper. Call `config_read_file` and set the variable value.
-config_get() {
+# cofig_get --
+#   A wrapper to call `config_read_file` and set the variable value.
+# EX
+#       config_variable=$(config_get some_variable "${_prefix}/some_config.cfg")
+config_get() {      #{{{
    val="$(config_read_file "${2}" "${1}")";
    printf -- "%s" "${val}";
 }
+#}}}
 
-# XXX:
-# 1. Preform numeric compairison and exit.
-#		EG: err=$?; [[ $err -ne 0 ]] && exit $err
-# assert ---
-#   Assert value has been set, otherwise exit.
-## assert() {
-## #   val=$1
-##    if [ "${1}" = __UNDEFINED__ ]; then
-##       # if we've not found a value, then exit.
-##       bailout "**ERROR** \"$vall\" value not found in jconfig.conf"
-##    fi
-## }
-# }}}
+# extract_userland --
+#	simple wrapper to extract the userland.
+# EX
+#   extract_userland $userland_media_path $container_path/$jail_name 
+extract_userland() {        #{{{
+	local _what=$1
+	local _where=$2
 
-# Environment sanity check
+    # Create the jail directory.
+	echo "Extracting the userland"
+    mkdir -p $_where
+	tar -xf $_what -C $_where --unlink
+}
+#}}}
+
+# copyinto_userland --
+#	This function will copy files from one directory to another
+#	but make sure both source and destination exist before doing
+#	so, otherwise error.
+# EX
+#   if assert $copyin; then
+#       if validate $copyin; then
+#           copyinto_userland $_prefix/$copyin "$_prefix/copyto"
+#       fi
+#   fi
+copyinto_userland() {      #{{{
+	local _cwd=$(pwd)
+	local _source=$1
+	local _dest=$2
+
+	## if ! validate "$_source"; then
+	## 	err "Directory to copy files from does not exist."
+    ##     exit 1
+	## fi
+
+	## if ! validate "$_dest"; then
+	## 	err "Directory to copy files into does not exist."
+	## fi
+
+	if assert $_source \
+			&& validate $_source \
+			&& assert $_dest \
+			&& validate $_dest; then
+				prompt "Copying in configurations"
+				cd $_source/ ; tar cf - . | ( tar xf - -C $_dest ) ; cd $_cwd
+	fi
+}
+#}}}
+
+# run_setup_script --
+#	This function will copy the setup script into the jail and run
+#	it.
+# EX
+#	run_setup_script ${jail_setup_script} "${_container_path}/${jail_name}"
+run_setup_script() {	#{{{
+		local _script
+		local _jail_path
+		_script=$1
+		_jail_path=$2
+
+		if assert ${_script} \
+				&& validate ${_script} \
+				&& assert ${_jail_path} \
+				&& validate ${_jail_path}; then
+						echo "Copying in the setup script"
+						cp "${_script}" "${_jail_path}/jailsetup.sh"
+						chown root:wheel "${_jail_path}/jailsetup.sh"
+						service jail start ${jail_name}
+						echo "Configuring jail"
+						jexec ${jail_name} '/jailsetup.sh'
+						service jail stop ${jail_name}
+		fi
+}
+#}}}
+
+# check_sysv --
+#       This function will check for sysv variables and echo them out
+#       (to the jail.conf file we hope).
+# EX
+# check_sysv $_jail_conf_file
+check_sysv() {          #{{{
+   local _where=$2                      # where to write the config line to.
+
+   if assert ${jail_systemv}; then
+		   if [ ${jail_systemv} == "1" ]; then
+				   #   echo "  exec.stop  = \"\";" >> $_where
+				   echo "  allow.sysvipc = 1;" >> $_where
+		   fi
+   fi
+
+   if assert ${jail_sysvmsg}; then
+		   if [ ${jail_sysvmsg} == "new" ]; then
+				   echo "  sysvmsg = new;" >> $_where
+		   fi
+   fi
+
+   if assert ${jail_sysvsem}; then
+		   if [ ${jail_sysvsem} == "new" ]; then
+				   echo "  sysvsem = new;" >> $_where
+		   fi
+   fi
+
+   if assert ${jail_sysvshm}; then
+		   if [ ${jail_sysvshm} == "new" ]; then
+				   echo "  sysvshm = new;" >> $_where
+		   fi
+   fi
+}
+#}}}
+
+# check_mlock --
+#       A function to check and see if we need the jail to have mlocking.
+# EX
+# check_mlock $jail_mlock $_jail_conf_file
+check_mlock() {         #{{{
+   local _var=$1                        # Varible to check
+   local _where=$2                      # where to write the config line to.
+
+   if assert ${_var}; then
+		   if [ $_var == "1" ]; then
+				   echo "  exec.stop  = \"\";" >> $_where
+				   echo "  allow.mlock;" >> $_where
+		   fi
+   fi
+}
+#}}}
+
+# check_mounts --
+#
+# EX
+# check_mounts $jail_mounts $_jail_conf_file
+check_mounts() {        #{{{
+   local _mounts=$1
+   local _where=$2
+
+   # Read any mountings
+   if ! assert ${_mounts}; then
+		   cat "${_mounts}" | while read line
+   do
+		   echo "  $line" >> $_where
+   done
+   fi
+}
+#}}}
+
+# mkidr --
+#       simple wrapper to keep all directory making consistant.
+# EX
+# makedir "a/location"
+makedir() {     #{{{
+   local _where=$1                      # directory to create
+
+   mkdir -p $_where
+}
+#}}}
+
+##
+## ENVIRONMENT CHECK
+
+# Make sure we are run as root.
 test_root
-
-# Save current location.
-cwd=$(pwd)
+# Make sure we can at least find the /etc/jail.conf file. For
+# simplicity, I assume it is set up.
+if ! validate $(find /etc/ -type f -name 'jail.conf'); then
+		err "Unable to locate \"/etc/jail.conf\" file. See docs."
+		exit 1
+fi
 
 ##
-## Variables
-# Locate our configuration file to find userland and container locations.
-_jcreate_conf="$(find ~/bin/ -type f -name 'jcreate.conf')"
+## SCRIPT VARIABLES
+## These variables are necessary to run the script.
 
-# Accept a template configuration file for jail parameters.
-_template_conf=$1
+        # _template_conf --
+        #       Template to pull jail variables from
+        _template_conf=$1
 
-# Get the Userland and Conatainer locations
-userland_media_path="$(config_get media.path $_jcreate_conf)"
-container_path="$(config_get containers.path $_jcreate_conf)"
-
-# Get variables from the template.conf file.
-jail_name="$(config_get jail.name $_template_conf)"
-jail_epairid="$(config_get jail.epairid $_template_conf)"
-
-# jail.config --
-# This file will list all the different components we need to
-# configure the jail.
-jail_setup_script=`basename "$(config_get jail.config $_template_conf)"`
-_setup_script="$(find  ${_template_conf%/*} -type f -name "${jail_setup_script}")"
-
-# jail.mlock --
-# Used to enable `mlock` on the jail. -i.e. a setting in the
-# `jail.conf` file.
-jail_mlock="$(config_get jail.mlock $_template_conf)"
-
-# jail.mounts --
-# Used to create mount points inside the jail.
-jail_mounts=`basename "$(config_get jail.mounts $_template_conf)"`
-_mounts="$(find  ${_template_conf%/*} -type f -name "${jail_mounts}")"
-
-# jail.copyin --
-# This is used to copy in configuration files for the setup script
-jail_copyin="$(config_get jail.copyin $_template_conf)"
-if [ "${jail_copyin}" != __UNDEFINED__ ]; then
-   _copyin="${_template_conf%/*}/`basename $jail_copyin`"
-fi
-
-# jail.copypost --
-# Used to copy in some post jail configuration files after the jail
-# has been created and configured. -e.g. A `plexdata` folder.
-jail_copypost="$(config_get jail.copypost $_template_conf)"
-if [ "${jail_copyin}" != __UNDEFINED__ ]; then
-   _copypost="${_template_conf%/*}/`basename $jail_copypost`"
-fi
-
-#jail_preconfig="$(config_get jail.preconfig $_template_conf)"
-
-# jail.msg --
-# This is used to display a message after the jail has been setup.
-# -e.g. An activation key or further setup instructions.
-jail_msg=`basename "$(config_get jail.msg $_template_conf)"`
-_message="$(find  ${_template_conf%/*} -type f -name "${jail_msg}")"
-
-#adminuser="$(config_get jail.adminuser $_template_conf)"
-#adminpswd="$(config_get jail.adminpswd $_template_conf)"
+        # jcreate.conf --
+        #       Configuration file which holds the `media.path`
+        #       and `containers.path`variables.
+        _jcreate_conf=$(find /usr/local/etc/ -type f -name 'jcreate.conf')
 
 ##
-## Assertions
-# Assert the variables we need are defined, otherwise exit script.
-#{{{
-#assert TTTuserland_media_path
-#assert "container_path"
+## REQUIRED VARIABLES
+## These variables are required; script should exit immediately if and are not found.
 
-if [ "${userland_media_path}" = __UNDEFINED__ ]; then
-   # if we've not found a value, then exit.
-   echo "**ERROR** \"media.path\" value not found in jconfig.ini"
-   exit 1
-fi
+        _userland_path=$(config_get media.path ${_jcreate_conf})
+        if ! assert ${_userland_path} || ! validate ${_userland_path}; then
+                err "Userland path is required"
+                exit 1
+        fi
 
-if [ "${container_path}" = __UNDEFINED__ ]; then
-   # if we've not found a value, then exit.
-   echo "**ERROR** \"container.path\" value not found in jconfig.ini"
-   exit 1
-fi
+        _container_path=$(config_get containers.path ${_jcreate_conf})
+        if ! assert ${_container_path} || ! validate ${_container_path}; then
+                err "invalid jail container path"
+                exit 1
+        fi
 
-if [ "${jail_name}" = __UNDEFINED__ ]; then
-   # if we've not found a value, then exit.
-   echo "**ERROR** \"jail.name\" value not found in jconfig.ini"
-   exit 1
-fi
+        _container_conf=$(config_get containers.conf ${_jcreate_conf})
+        if ! assert ${_container_conf} || ! validate ${_container_conf}; then
+                err "invalid jail container configuration path"
+                exit 1
+        fi
 
-if [ "${jail_epairid}" = __UNDEFINED__ ]; then
-   # if we've not found a value, then exit.
-   echo "**ERROR** \"jail.epairid\" value not found in jconfig.ini"
-   exit 1
-fi
-# }}}
+        jail_name=$(config_get jail.name ${_template_conf})
+        if ! assert ${jail_name}; then
+                err "jail name not found in ${_template_conf}"
+                exit 1
+        fi
 
-echo "Creating the jail: \"$jail_name\""
+        # epair.id --
+        jail_epairid=$(config_get jail.epairid ${_template_conf})
+        if ! assert ${jail_epairid}; then
+                err "jail epair ID not found in ${_template_conf}"
+                exit 1
+        fi
 
-# Create a variable to save typing this over and over again.
-_jail_conf_file=/etc/jail.conf.d/${jail_name}.conf
+##
+## OPTIONAL VARIABLES
+## These variables define extra information that should be included in the jail.conf file.
 
-echo "Extracting userland."
-# Create the jail directory.
-mkdir -p $container_path/$jail_name
+        # jail.mlock --
+        jail_mlock=$(config_get jail.mlock ${_template_conf})
 
-# Extract the userland base.
-tar -xf $userland_media_path -C $container_path/$jail_name --unlink
+        jail_systemv=$(config_get jail.systemv ${_template_conf})
+        jail_sysvmsg=$(config_get jail.sysvmsg ${_template_conf})
+        jail_sysvsem=$(config_get jail.sysvsem ${_template_conf})
+        jail_sysvshm=$(config_get jail.sysvshm ${_template_conf})
+
+        jail_setup_script="$(config_get jail.config ${_template_conf})"
+		# check variable, locate file and validate
+        if assert ${jail_setup_script}; then
+                jail_setup_script="$(find ${_template_conf%/*} -type f -name "${jail_setup_script}")"
+                jail_setup_script="$(readlink -f ${jail_setup_script})"
+				if ! validate ${jail_setup_script}; then
+						err "Specified jail setup script is not valid"
+						exit 1
+				fi
+        fi
+        
+		jail_mounts="$(config_get jail.mounts ${_template_conf})"
+		# check variable, locate file and validate
+        if assert ${jail_mounts}; then
+                jail_mounts="$(find ${_template_conf%/*} -type f -name "${jail_mounts}")"
+                jail_mounts="$(readlink -f ${jail_mounts})"
+        fi
+       
+		jail_copyin="$(config_get jail.copyin ${_template_conf})"
+		# check variable, locate file and validate
+        if assert ${jail_copyin}; then
+                jail_copyin="$(find ${_template_conf%/*} -type f -name "${jail_copyin}")"
+                jail_copyin="$(readlink -f $jail_copyin)"
+				if ! validate ${jail_copyin}; then
+						err "Spcified \"copy in directory\" is not valid"
+						exit 1
+				fi
+        fi
+        
+		jail_msg="$(config_get jail.msg ${_template_conf})"
+		# check variable, locate file and validate
+        if assert ${jail_msg}; then
+                jail_msg="$(find ${_template_conf%/*} -type f -name "${jail_msg}")"
+                jail_msg="$(readlink -f ${jail_msg})"
+				if ! validate ${jail_msg}; then
+						err "Specified jail creation message is not valid"
+						exit 1
+				fi
+        fi
+
+##
+## Jail Creating.
+## 	At this point in the script all the variables should be asserted
+##  and validated, so we can start calling our helper functions to
+##  create the userland copy in the script and etc..
+
+# Name of configuration file to create.
+_jail_conf_file=${_container_conf}/${jail_name}.conf
+
+echo "Creating the jail: \"${jail_name}\""
+extract_userland ${_userland_path} ${_container_path}/${jail_name}
 
 echo "Copying DNS server information"
 # Copy DNS server.
-cp /etc/resolv.conf $container_path/$jail_name/etc/resolv.conf
+cp /etc/resolv.conf ${_container_path}/${jail_name}/etc/resolv.conf
 
 # Copy timezone.
-cp /etc/localtime $container_path/$jail_name/etc/localtime
+echo "Copying timezone information"
+cp /etc/localtime ${_container_path}/${jail_name}/etc/localtime
 
 # Update to latest patch.
-# freebsd-update -b $container_path/ fetch install
+# freebsd-update -b ${_container_path}/ fetch install
 
-## Run preconfiguration script if any.
-#if [ "${jail_preconfig}" != __UNDEFINED__ ]; then
-#        . "${jail_preconfig}"
-#fi
-
-# jail.copyin --
-# Copy in the `copyin` directory.
-if [ "${_copyin}" != "" ]; then
-   echo "Copying in configurations"
-   cd $_copyin/ ; tar cf - . | ( tar xf - -C $container_path/$jail_name/usr/local/ )
-fi
-
-# Ensure we are at the same location as we were when the script was called.
-cd ${cwd}
+# copy in the copy_in directory.
+copyinto_userland ${jail_copyin} ${_container_path}/${jail_name}/usr/local/
 
 # Create a minimal jail.conf file to start and configure the jail with the setup script.
 #{{{
 # Create the jail.conf file.
 echo "
-$jail_name {
+${jail_name} {
   # NETWORKS/INTERFACES
   \$id = "${jail_epairid}";
-}" > $_jail_conf_file
+" > ${_jail_conf_file}
+
+check_sysv ${_jail_conf_file}
+
+echo "}" >> ${_jail_conf_file}
 #}}}
 
-# jail.conf --
 # Run the jail configuration script
-if [ "${_setup_script}" != "" ]; then
-   echo "Configuring jail"
-#   sed "s,adminuser,adminuser=\"${adminuser}\",g" $_setup_script
-   cp $_setup_script $container_path/$jail_name/jailsetup.sh
-   chown root:wheel $container_path/$jail_name/jailsetup.sh
-   service jail start $jail_name
-   jexec $jail_name '/jailsetup.sh'
-   service jail stop $jail_name
-fi
+run_setup_script ${jail_setup_script} "${_container_path}/${jail_name}"
 
 # Recreate the jail.conf file, for the configured jail, with the specified mountings.
 echo "Creating the jail.conf file."
 #{{{
 # Create the jail.conf file.
 echo "
-# $jail_name
+# ${jail_name}
 # The steps taken to create this jail:
 #
 # # Create the jail directory.
-# mkdir -p $container_path/$jail_name
+# mkdir -p ${_container_path}/${jail_name}
 #
 # # Extract the userland base.
-# tar -xf $userland_media_path -C $container_path/$jail_name --unlink
+# tar -xf ${_userland_path} -C ${_container_path}/${jail_name} --unlink
 #
 # # Copy DNS server.
-# cp /etc/resolv.conf $container_path/$jail_name/etc/resolv.conf
+# cp /etc/resolv.conf ${_container_path}/${jail_name}/etc/resolv.conf
 #
 # # Copy timezone.
-# cp /etc/localtime $container_path/$jail_name/etc/localtime
+# cp /etc/localtime ${_container_path}/${jail_name}/etc/localtime
 #
 # # Update to latest patch.
-# freebsd-update -b $container_path/ fetch install
+# freebsd-update -b ${_container_path}/ fetch install
 
-$jail_name {
+${jail_name} {
   # NETWORKS/INTERFACES
   \$id = "${jail_epairid}";
-" > $_jail_conf_file
+" > ${_jail_conf_file}
 
-#echo "Jail Mlock: ${jail_mlock}"
-if [ "${jail_mlock}" == "1" ]; then
-   echo "  exec.stop  = \"\";" >> $_jail_conf_file
-   echo "  allow.mlock;" >> $_jail_conf_file
-fi
+check_sysv ${_jail_conf_file}
+check_mlock ${jail_mlock} ${_jail_conf_file}
+check_mounts ${jail_mounts} ${_jail_conf_file}
 
-#echo "Jail mounts: ${_mounts}"
-# Read any mountings
-if [ "${_mounts}" != "" ]; then
-   cat "${_mounts}" | while read line
-    do
-        echo "  $line" >> $_jail_conf_file
-    done
-fi
-echo "}" >> $_jail_conf_file
+echo "}" >> ${_jail_conf_file}
 #}}}
 
-# jail.copypost --
-# Copy in the `copypost` directory.
-if [ "${_copypost}" != "" ]; then
-   echo "Copying in configurations (post setup)"
-   cd $_copypost/ ; tar cf - . | ( tar xf - -C $container_path/$jail_name/usr/local/ )
-fi
-
-## # set the admin user and admin password
-## if [ "${adminusr}" -ne __UNDEFINED__] && [ "${adminpswd}" -ne __UNDEFINED__ ]; then
-##         echo "Adding admin user: ${adminuser}"
-##         echo "#!/bin/sh
-##         pw user add -n $adminuser -d /home/$adminuser -G wheel -s /bin/csh
-##         echo "${adminpswd}" | pw usermod -n $adminuser -h 0
-##         chmod 754 /home/$adminuser
-##         mkdir -p /home/$adminuser/.ssh
-##         touch /home/$adminuser/.ssh/authorized_keys
-##         chown -R $adminuser:$adminuser /home/$adminuser/.ssh
-##         chmod 700 /home/$adminuser/.ssh
-##         chmod 600 /home/$adminuser/.ssh/authorized_keys
-##         #rm /jailsetup_user.sh
-##         " >> $_setup_script $container_path/$jail_name/jailsetup_user.sh
-##         chown root:wheel $container_path/$jail_name/jailsetup_user.sh
-##         chmod u+x $container_path/$jail_name/jailsetup_user.sh
-##         jexec $jail_name '/jailsetup_user.sh'
-## fi
-
-##
 ## Report results.
-printf -- "\n -- Configuration --\n"
-printf -- "Media path\t\t: %s\n" "${userland_media_path}"
-printf -- "Container path\t\t: %s/%s\n" "${container_path}" "${jail_name}"
+printf -- "\n -- CONFIGURATION --\n"
+printf -- "Media path\t\t: %s\n" "${_userland_path}"
+printf -- "Container path\t\t: %s/%s\n" "${_container_path}" "${jail_name}"
+printf -- "Container config path\t: %s\n" "${_container_conf}"
 printf -- "Jail name\t\t: %s\n" "${jail_name}"
 printf -- "Jail epairid\t\t: %s\n" "${jail_epairid}"
 printf -- "Jail IP\t\t\t: 192.168.0.%s\n" "${jail_epairid}"
 printf -- "Jail config\t\t: %s\n" "${_jail_conf_file}"
-printf -- " -- Maintence --\n"
+printf -- "\n -- MAINTENCE --\n"
 printf -- "To start the jail\t: doas service jail start %s\n" "${jail_name}"
-printf -- "To execute the jail\t: doas jexec %s\n" "${jail_name}"
+printf -- "To execute the jail\t: doas jexec %s /bin/sh\n" "${jail_name}"
 printf -- "To destroy the jail\t: doas jdestroy.sh %s\n" "${jail_name}"
-## if [ "${adminusr}" -ne __UNDEFINED__] && [ "${adminpswd}" -ne __UNDEFINED__ ]; then
-##         printf -- "To copy your public key to the new jail:\n"
-##         printf -- "\tssh-copy-id -i ~/.ssh/id_ed25519.pub $adminuser@192.168.0.%s\n" "${jail_epairid}"
-## fi
+printf -- "To manually destroy the jail:\n\t chflags -R 0 /usr/local/jails/containers/${jail_name}\n"
+printf -- "\t rm -rf ${_container_path}/${jail_name}\n"
+printf -- "\t rm ${_jail_conf_file}\n"
+#printf -- "\n\nJail setup script\t: ${jail_setup_script}\n"
+#if assert ${jail_copyin} && validate ${jail_copyin}; then
+#        printf -- "Jail copy in\t: ${jail_copyin}\n"
+#fi
 
 # jail.msg --
 # Read the message file and echo the results
-if [ "${_message}" != "" ]; then
-   cat "${_message}" | while read line
+if assert ${jail_msg} && validate ${jail_msg}; then
+   printf -- "\n -- MESSAGE --"
+   cat "${jail_msg}" | while read line
     do
         echo "$line"
     done
