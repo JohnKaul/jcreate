@@ -83,7 +83,7 @@ The default `jcreate.conf` confuration file should contain the following variabl
 To create a jail, `jcreate` needs a few more variables and these are specific to each jail.
 
 * `jail.name` (REQUIRED) - The name of the jail
-* `jail.epairid` REQUIRED - This is the last few digits of the jails IP address.
+* `jail.epairid` (REQUIRED) - This is the last few digits of the jails IP address.
 * `jail.mounts` (OPTIONAL) - The file which contains the mount locations.
 * `jail.config` (OPTIONAL) - The configuration script to be copied into the jail and executed.
 * `jail.mlock=1` (OPTIONAL) - Allow jail to mlock.
