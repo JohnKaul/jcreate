@@ -7,10 +7,10 @@ CC      =	chmod
 CFLAGS  =	+x
 # processor flags
 
-SRC_EXT =	.sh
-# source file ext
-
 SED		:=	sed
+CP		:=	cp
+ECHO	:=	echo
+RM		:=	rm
 
 # ==============================================================
 # project information
@@ -39,28 +39,28 @@ SOURCES =	\
 all: $(PROJECTNAME)
 
 $(PROJECTNAME) :
-	@echo "Processing..."
+	@$(ECHO) "Processing..."
 	$(CC) $(CFLAGS) $(SOURCES)
 
 install:
-	@echo "Installing $(PROJECTNAME) to: $(PREFIX)"
+	@$(ECHO) "Installing $(PROJECTNAME) to: $(PREFIX)"
 	@$(SED) 's,/usr/local/etc/,$(CONFPATH),g' $(SRCDIR)/jdestroy.sh > $(PREFIX)/jdestroy
-	@cp $(SRCDIR)/$(PROJECTNAME).conf $(CONFPATH)/$(PROJECTNAME).conf
+	@$(CP) $(SRCDIR)/$(PROJECTNAME).conf $(CONFPATH)/$(PROJECTNAME).conf
 	@$(SED) 's,/usr/local/etc/,$(CONFPATH),g' $(SRCDIR)/$(PROJECTNAME).sh > $(PREFIX)/$(PROJECTNAME)
 	@$(CC) $(CFLAGS) $(PREFIX)/$(PROJECTNAME)
 #-X- 	@if [ ! -d $(MANPATH) ]; then mkdir -p $(MANPATH); fi
-	@cp $(DOCDIR)/$(PROJECTNAME).7 $(MANPATH)/$(PROJECTNAME).7
+	@$(CP) $(DOCDIR)/$(PROJECTNAME).7 $(MANPATH)/$(PROJECTNAME).7
 
 uninstall: remove
 remove:
-	@echo "Uninstalling $(PROJECTNAME) from: $(INSTALLDIR)"
+	@$(ECHO) "Uninstalling $(PROJECTNAME) from: $(PREFIX)"
 	# jcreate
-	@if [ -f $(PREFIX)/$(PROJECTNAME) ]; then rm $(PREFIX)/$(PROJECTNAME); fi
+	@if [ -f $(PREFIX)/$(PROJECTNAME) ]; then $(RM) $(PREFIX)/$(PROJECTNAME); fi
 	# jdestroy
-	@if [ -f $(PREFIX)/jdestroy ]; then rm $(PREFIX)/jdestroy; fi
+	@if [ -f $(PREFIX)/jdestroy ]; then $(RM) $(PREFIX)/jdestroy; fi
 	# jcreate.conf
-	@if [ -f $(CONFPATH)/$(PROJECTNAME).conf ]; then rm $(CONFPATH)/$(PROJECTNAME).conf; fi
+	@if [ -f $(CONFPATH)/$(PROJECTNAME).conf ]; then $(RM) $(CONFPATH)/$(PROJECTNAME).conf; fi
 	# manpage
-	@if [ -f $(MANPATH)/$(PROJECTNAME).7 ]; then rm $(MANPATH)/$(PROJECTNAME).7; fi
+	@if [ -f $(MANPATH)/$(PROJECTNAME).7 ]; then $(RM) $(MANPATH)/$(PROJECTNAME).7; fi
 
 # vim: set noet set ff=unix
