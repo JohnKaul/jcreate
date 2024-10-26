@@ -207,24 +207,24 @@ config_get() {      #{{{
 #}}}
 
 # extract_userland --
-#	simple wrapper to extract the userland.
+#   simple wrapper to extract the userland.
 # EX
 #   extract_userland $userland_media_path $container_path/$jail_name 
 extract_userland() {        #{{{
-	local _what=$1
-	local _where=$2
+    local _what=$1
+    local _where=$2
 
     # Create the jail directory.
-	echo "Extracting the userland"
+    echo "Extracting the userland"
     mkdir -p $_where
-	tar -xf $_what -C $_where --unlink
+    tar -xf $_what -C $_where --unlink
 }
 #}}}
 
 # copyinto_userland --
-#	This function will copy files from one directory to another
-#	but make sure both source and destination exist before doing
-#	so, otherwise error.
+#   This function will copy files from one directory to another
+#   but make sure both source and destination exist before doing
+#   so, otherwise error.
 # EX
 #   if assert $copyin; then
 #       if validate $copyin; then
@@ -232,52 +232,52 @@ extract_userland() {        #{{{
 #       fi
 #   fi
 copyinto_userland() {      #{{{
-	local _cwd=$(pwd)
-	local _source=$1
-	local _dest=$2
+    local _cwd=$(pwd)
+    local _source=$1
+    local _dest=$2
 
-	## if ! validate "$_source"; then
-	## 	err "Directory to copy files from does not exist."
+    ## if ! validate "$_source"; then
+    ##  err "Directory to copy files from does not exist."
     ##     exit 1
-	## fi
+    ## fi
 
-	## if ! validate "$_dest"; then
-	## 	err "Directory to copy files into does not exist."
-	## fi
+    ## if ! validate "$_dest"; then
+    ##  err "Directory to copy files into does not exist."
+    ## fi
 
-	if assert $_source \
-			&& validate $_source \
-			&& assert $_dest \
-			&& validate $_dest; then
-				prompt "Copying in configurations"
-				cd $_source/ ; tar cf - . | ( tar xf - -C $_dest ) ; cd $_cwd
-	fi
+    if assert $_source \
+            && validate $_source \
+            && assert $_dest \
+            && validate $_dest; then
+                prompt "Copying in configurations"
+                cd $_source/ ; tar cf - . | ( tar xf - -C $_dest ) ; cd $_cwd
+    fi
 }
 #}}}
 
 # run_setup_script --
-#	This function will copy the setup script into the jail and run
-#	it.
+#   This function will copy the setup script into the jail and run
+#   it.
 # EX
-#	run_setup_script ${jail_setup_script} "${_container_path}/${jail_name}"
-run_setup_script() {	#{{{
-		local _script
-		local _jail_path
-		_script=$1
-		_jail_path=$2
+#   run_setup_script ${jail_setup_script} "${_container_path}/${jail_name}"
+run_setup_script() {    #{{{
+        local _script
+        local _jail_path
+        _script=$1
+        _jail_path=$2
 
-		if assert ${_script} \
-				&& validate ${_script} \
-				&& assert ${_jail_path} \
-				&& validate ${_jail_path}; then
-						echo "Copying in the setup script"
-						cp "${_script}" "${_jail_path}/jailsetup.sh"
-						chown root:wheel "${_jail_path}/jailsetup.sh"
-						service jail start ${jail_name}
-						echo "Configuring jail"
-						jexec ${jail_name} '/jailsetup.sh'
-						service jail stop ${jail_name}
-		fi
+        if assert ${_script} \
+                && validate ${_script} \
+                && assert ${_jail_path} \
+                && validate ${_jail_path}; then
+                        echo "Copying in the setup script"
+                        cp "${_script}" "${_jail_path}/jailsetup.sh"
+                        chown root:wheel "${_jail_path}/jailsetup.sh"
+                        service jail start ${jail_name}
+                        echo "Configuring jail"
+                        jexec ${jail_name} '/jailsetup.sh'
+                        service jail stop ${jail_name}
+        fi
 }
 #}}}
 
@@ -290,28 +290,28 @@ check_sysv() {          #{{{
    local _where=$2                      # where to write the config line to.
 
    if assert ${jail_systemv}; then
-		   if [ ${jail_systemv} == "1" ]; then
-				   #   echo "  exec.stop  = \"\";" >> $_where
-				   echo "  allow.sysvipc = 1;" >> $_where
-		   fi
+           if [ ${jail_systemv} == "1" ]; then
+                   #   echo "  exec.stop  = \"\";" >> $_where
+                   echo "  allow.sysvipc = 1;" >> $_where
+           fi
    fi
 
    if assert ${jail_sysvmsg}; then
-		   if [ ${jail_sysvmsg} == "new" ]; then
-				   echo "  sysvmsg = new;" >> $_where
-		   fi
+           if [ ${jail_sysvmsg} == "new" ]; then
+                   echo "  sysvmsg = new;" >> $_where
+           fi
    fi
 
    if assert ${jail_sysvsem}; then
-		   if [ ${jail_sysvsem} == "new" ]; then
-				   echo "  sysvsem = new;" >> $_where
-		   fi
+           if [ ${jail_sysvsem} == "new" ]; then
+                   echo "  sysvsem = new;" >> $_where
+           fi
    fi
 
    if assert ${jail_sysvshm}; then
-		   if [ ${jail_sysvshm} == "new" ]; then
-				   echo "  sysvshm = new;" >> $_where
-		   fi
+           if [ ${jail_sysvshm} == "new" ]; then
+                   echo "  sysvshm = new;" >> $_where
+           fi
    fi
 }
 #}}}
@@ -325,10 +325,10 @@ check_mlock() {         #{{{
    local _where=$2                      # where to write the config line to.
 
    if assert ${_var}; then
-		   if [ $_var == "1" ]; then
-				   echo "  exec.stop  = \"\";" >> $_where
-				   echo "  allow.mlock;" >> $_where
-		   fi
+           if [ $_var == "1" ]; then
+                   echo "  exec.stop  = \"\";" >> $_where
+                   echo "  allow.mlock;" >> $_where
+           fi
    fi
 }
 #}}}
@@ -343,9 +343,9 @@ check_mounts() {        #{{{
 
    # Read any mountings
    if ! assert ${_mounts}; then
-		   cat "${_mounts}" | while read line
+           cat "${_mounts}" | while read line
    do
-		   echo "  $line" >> $_where
+           echo "  $line" >> $_where
    done
    fi
 }
@@ -370,8 +370,8 @@ test_root
 # Make sure we can at least find the /etc/jail.conf file. For
 # simplicity, I assume it is set up.
 if ! validate $(find /etc/ -type f -name 'jail.conf'); then
-		err "Unable to locate \"/etc/jail.conf\" file. See docs."
-		exit 1
+        err "Unable to locate \"/etc/jail.conf\" file. See docs."
+        exit 1
 fi
 
 ##
@@ -435,48 +435,48 @@ fi
         jail_sysvshm=$(config_get jail.sysvshm ${_template_conf})
 
         jail_setup_script="$(config_get jail.config ${_template_conf})"
-		# check variable, locate file and validate
+        # check variable, locate file and validate
         if assert ${jail_setup_script}; then
                 jail_setup_script="$(find ${_template_conf%/*} -type f -name "${jail_setup_script}")"
                 jail_setup_script="$(readlink -f ${jail_setup_script})"
-				if ! validate ${jail_setup_script}; then
-						err "Specified jail setup script is not valid"
-						exit 1
-				fi
+                if ! validate ${jail_setup_script}; then
+                        err "Specified jail setup script is not valid"
+                        exit 1
+                fi
         fi
         
-		jail_mounts="$(config_get jail.mounts ${_template_conf})"
-		# check variable, locate file and validate
+        jail_mounts="$(config_get jail.mounts ${_template_conf})"
+        # check variable, locate file and validate
         if assert ${jail_mounts}; then
                 jail_mounts="$(find ${_template_conf%/*} -type f -name "${jail_mounts}")"
                 jail_mounts="$(readlink -f ${jail_mounts})"
         fi
        
-		jail_copyin="$(config_get jail.copyin ${_template_conf})"
-		# check variable, locate file and validate
+        jail_copyin="$(config_get jail.copyin ${_template_conf})"
+        # check variable, locate file and validate
         if assert ${jail_copyin}; then
                 jail_copyin="$(find ${_template_conf%/*} -type f -name "${jail_copyin}")"
                 jail_copyin="$(readlink -f $jail_copyin)"
-				if ! validate ${jail_copyin}; then
-						err "Spcified \"copy in directory\" is not valid"
-						exit 1
-				fi
+                if ! validate ${jail_copyin}; then
+                        err "Spcified \"copy in directory\" is not valid"
+                        exit 1
+                fi
         fi
         
-		jail_msg="$(config_get jail.msg ${_template_conf})"
-		# check variable, locate file and validate
+        jail_msg="$(config_get jail.msg ${_template_conf})"
+        # check variable, locate file and validate
         if assert ${jail_msg}; then
                 jail_msg="$(find ${_template_conf%/*} -type f -name "${jail_msg}")"
                 jail_msg="$(readlink -f ${jail_msg})"
-				if ! validate ${jail_msg}; then
-						err "Specified jail creation message is not valid"
-						exit 1
-				fi
+                if ! validate ${jail_msg}; then
+                        err "Specified jail creation message is not valid"
+                        exit 1
+                fi
         fi
 
 ##
 ## Jail Creating.
-## 	At this point in the script all the variables should be asserted
+##  At this point in the script all the variables should be asserted
 ##  and validated, so we can start calling our helper functions to
 ##  create the userland copy in the script and etc..
 
