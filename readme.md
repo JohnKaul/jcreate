@@ -100,10 +100,16 @@ myjail {
 }
 ```
 
-## BUILD INSTRUCTIONS 
+## INSTALL INSTRUCTIONS 
 
-The default location for this script is: `~/bin/` but you can also run a
-simple `configure` script to change that location.
+### DEFAULT LOCATIONS
+Run `configure` to change locations.
+
+| FILE          | LOCATION                    |
+| ------------- | --------------------------- |
+| jcreate       | /usr/local/bin              |
+| jcreate.conf  | /usr/local/etc              |
+| jcreate.7     | /usr/local/share/man/man7   |
 
 ```bash
 $ cd jcreate
