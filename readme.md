@@ -9,6 +9,7 @@ Author:  John Kaul <john.kaul@outlook.com>
 ## BRIEF
 
 jcreate [configfile]
+
 jdestroy [jailname]
 
 ## DESCRIPTION
@@ -84,6 +85,7 @@ To create a jail, `jcreate` needs a few more variables and these are specific to
 
 * `jail.name` (REQUIRED) - The name of the jail
 * `jail.epairid` (REQUIRED) - This is the last few digits of the jails IP address.
+* `jail.packages` (OPTIONAL) - A file with a list of packages to be istalled via the host system.
 * `jail.mounts` (OPTIONAL) - The file which contains the mount locations.
 * `jail.config` (OPTIONAL) - The configuration script to be copied into the jail and executed.
 * `jail.mlock=1` (OPTIONAL) - Allow jail to mlock.
@@ -99,6 +101,17 @@ myjail {
     $id = "63";
 }
 ```
+
+### EXAMPLES
+Two (2) examples are in the `examples` folder.  Each example will set
+up an admin user (`admin`) with a password of `admin` for ssh access.
+
+* plex - A template which installs packages and jail setup up via a
+  script file which is copied into the jail and run. See the `plex.sh`
+  script.
+
+* emby - A template which is slimmed down and packages are installed
+  via the host system.
 
 ## INSTALL INSTRUCTIONS 
 
