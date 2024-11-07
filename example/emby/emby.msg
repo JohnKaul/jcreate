@@ -1,4 +1,11 @@
---== MESSAGE ==--
+
+*This jail has been slimmed down*
+This jail has had some binaries, example files, pkg, compilers, etc.
+removed. All package maintence should be run from host system.
+
+Example:
+$ doas pkg -j emby install -y <package>
+
 
 *How to use the Backup & Restore Plugin*
 

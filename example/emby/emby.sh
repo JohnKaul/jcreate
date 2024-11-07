@@ -4,52 +4,11 @@
 #  This file does the setup of the jail.
 #  -i.e. Creates user, setups ssh, installs packages, etc.
 
-# -------------- BEGIN PACKAGE SETUP -------------
-# {{{
-echo "Bootstrap package repo"
-mkdir -p /usr/local/etc/pkg/repos
-# only modify repo if not already done in base image
-# shellcheck disable=SC2016
-test -e /usr/local/etc/pkg/repos/FreeBSD.conf || \
-  echo 'FreeBSD: { url: "pkg+http://pkg.FreeBSD.org/${ABI}/quarterly" }' \
-    >/usr/local/etc/pkg/repos/FreeBSD.conf
-ASSUME_ALWAYS_YES=yes pkg bootstrap
-
-echo "Touch /etc/rc.conf"
-touch /etc/rc.conf
-
-echo "Disable sendmail"
-service sendmail onedisable || true
-
-echo "Create /usr/local/etc/rc.d"
-mkdir -p /usr/local/etc/rc.d
-# }}}
-
-echo "Install package rsync"
-# used to sync possible update scripts or other misc.
-# `fetch` could also be used so this may not be necessary.
-pkg install -y rsync
-
-echo "Intall git-tiny"
-# used to pull possible update scripts or other misc.
-# `fetch` could also be used so this may not be necessary.
-pkg install -y git-tiny
-
-echo "Install package openssh"
-# This is used to allow for admin user to SSH into jail.
-pkg install -y openssh-portable
-
-# embymediaserver install
-echo "Install package embymediaserver"
-pkg install -y emby-server
+# enable emby-server
 sysrc emby_server_enable="YES"
 service emby-server start || true
 
-echo "Clean package installation"
-pkg clean -y
-
 # --------------- BEGIN USERSETUP --------------
-
 # Users
 echo "Setting up admin user."
 # {{{
@@ -256,7 +215,7 @@ echo "Setting up SSH access."
 # {{{
 #touch /etc/local/etc/ssh/sshd_config
 echo "  Creating /etc/ssh/sshd_conf file."
-echo "#Port 2255        # Since we are using OpenSSH this value should go in '/usr/local/etc/ssh/sshd_config'.
+echo "#Port 2255
 Protocol 2
 HostKey /etc/ssh/ssh_host_ed25519_key
 
@@ -277,16 +236,56 @@ Subsystem	sftp	/usr/libexec/sftp-server
 AllowUsers admin
 " > /etc/ssh/sshd_config
 
-echo "  Enable OpenSSH"
-sysrc openssh_enable="YES"
-service openssh enable || true
+echo "  Enable SSHD"
+sysrc sshd_enable="YES"
+service sshd enable || true
 
 echo "  Generate host keys"
 /usr/bin/ssh-keygen -A                 # Generate all keys.
 
-echo "  Starting OpenSSH"
-service openssh start || true
-service openssh restart || true
+echo "  Starting SSH"
+service sshd start || true
+service sshd restart || true
 # }}}
 
 # ---------------- END USER SETUP ---------------
+
+# Slim down jail (optional step; delete section if not necessary).
+echo "Sliming binaries"
+# {{{
+
+export PATH=/usr/local/bin:$PATH
+
+dirs="/usr/share/bsdconfig /usr/share/doc /usr/share/dtrace /usr/share/examples /usr/share/man /usr/share/openssl /usr/share/sendmail /usr/share/pc-sysinstall /usr/libexec/bsdinstall /usr/libexec/bsdconfig /rescue /usr/tests /usr/lib32 /usr/lib/clang /usr/include /var/db/freebsd-update /var/db/etcupdate /boot"
+usr_bin="c++ c++filt c89 c99 cc CC cpp clang clang-cpp clang-tblgen clang++ gdb gdbtui gdbserver ld ld.bfd ld.lld lldb llvm-objdump llvm-tblgen nm objcopy objdump strings strip"
+usr_bin_glob="svnlite yp"
+
+usr_sbin="dtrace"
+usr_sbin_glob="bhyve boot yp"
+rm -f /usr/lib/*.a
+## Remove pkg stuff
+rm -rf /var/db/pkg/*
+rm -rf /usr/sbin/pkg
+rm -rf /usr/local/sbin/pkg
+
+for d in $dirs ; do
+	rm -rf "$d"
+done
+(
+	cd /usr/bin || exit 1
+	for f in $usr_bin ; do
+		rm -f "$f"
+	done
+	for g in $usr_bin_glob ; do
+		rm -rf "$g"*
+	done
+)
+(
+	cd /usr/sbin || exit 1
+	for g in $usr_sbin_glob ; do
+		rm -rf "$g"*
+	done
+	rm -f $usr_sbin
+)
+
+# }}}
