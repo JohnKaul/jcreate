@@ -182,8 +182,8 @@ assert() {      #{{{
    local _source
    _source=$1
 
-   if [ -z $_source ]; then 
-       return 1 
+   if [ -z $_source ]; then
+       return 1
    fi
 #   return 0
 }
@@ -209,15 +209,15 @@ config_get() {      #{{{
 # extract_userland --
 #   simple wrapper to extract the userland.
 # EX
-#   extract_userland $userland_media_path $container_path/$jail_name 
+#   extract_userland $userland_media_path $container_path/$jail_name
 extract_userland() {        #{{{
-    local _what=$1
-    local _where=$2
+	local _what=$1
+	local _where=$2
 
-    # Create the jail directory.
-    echo "Extracting the userland"
-    mkdir -p $_where
-    tar -xf $_what -C $_where --unlink
+	# Create the jail directory.
+	echo "Extracting the userland"
+	mkdir -p $_where
+	tar -xf $_what -C $_where --unlink
 }
 #}}}
 
@@ -274,6 +274,13 @@ run_setup_script() {    #{{{
                         cp "${_script}" "${_jail_path}/jailsetup.sh"
                         chown root:wheel "${_jail_path}/jailsetup.sh"
                         service jail start ${jail_name}
+
+                        if assert ${jail_packages}; then
+                                # Run 'pkg install' from the host system for
+                                # any packages found in the `jail.packages` file.
+                                pkg -j ${jail_name} install -y `cat ${jail_packages}`
+                        fi
+
                         echo "Configuring jail"
                         jexec ${jail_name} '/jailsetup.sh'
                         service jail stop ${jail_name}
@@ -444,14 +451,14 @@ fi
                         exit 1
                 fi
         fi
-        
+
         jail_mounts="$(config_get jail.mounts ${_template_conf})"
         # check variable, locate file and validate
         if assert ${jail_mounts}; then
                 jail_mounts="$(find ${_template_conf%/*} -type f -name "${jail_mounts}")"
                 jail_mounts="$(readlink -f ${jail_mounts})"
         fi
-       
+
         jail_copyin="$(config_get jail.copyin ${_template_conf})"
         # check variable, locate file and validate
         if assert ${jail_copyin}; then
@@ -462,7 +469,7 @@ fi
                         exit 1
                 fi
         fi
-        
+
         jail_msg="$(config_get jail.msg ${_template_conf})"
         # check variable, locate file and validate
         if assert ${jail_msg}; then
@@ -474,6 +481,16 @@ fi
                 fi
         fi
 
+        # Packages can be installed from the host system
+        # from in the jail via the setup script; this section looks
+        # for any packages that need to be installed from the host
+        # system.
+        jail_packages="$(config_get jail.packages ${_template_conf})"
+        if assert ${jail_packages}; then
+                jail_packages="$(find ${_template_conf%/*} -type f -name "${jail_packages}")"
+                jail_packages="$(readlink -f ${jail_packages})"
+        fi
+
 ##
 ## Jail Creating.
 ##  At this point in the script all the variables should be asserted
@@ -483,19 +500,24 @@ fi
 # Name of configuration file to create.
 _jail_conf_file=${_container_conf}/${jail_name}.conf
 
-echo "Creating the jail: \"${jail_name}\""
-extract_userland ${_userland_path} ${_container_path}/${jail_name}
+# LOGIC:
+# - If the userland already exists, skip extracting; this could be
+#   the situation where a user wants to update the jail via a script.
+if ! [ -d "${_container_path}/${jail_name}" ]; then
+		echo "Creating the jail: \"${jail_name}\""
+		extract_userland ${_userland_path} ${_container_path}/${jail_name}
 
-echo "Copying DNS server information"
-# Copy DNS server.
-cp /etc/resolv.conf ${_container_path}/${jail_name}/etc/resolv.conf
+		echo "Copying DNS server information"
+		# Copy DNS server.
+		cp /etc/resolv.conf ${_container_path}/${jail_name}/etc/resolv.conf
 
-# Copy timezone.
-echo "Copying timezone information"
-cp /etc/localtime ${_container_path}/${jail_name}/etc/localtime
+		# Copy timezone.
+		echo "Copying timezone information"
+		cp /etc/localtime ${_container_path}/${jail_name}/etc/localtime
 
-# Update to latest patch.
-# freebsd-update -b ${_container_path}/ fetch install
+		# Update to latest patch.
+		# freebsd-update -b ${_container_path}/ fetch install
+fi
 
 # copy in the copy_in directory.
 copyinto_userland ${jail_copyin} ${_container_path}/${jail_name}/usr/local/
@@ -564,14 +586,10 @@ printf -- "Jail config\t\t: %s\n" "${_jail_conf_file}"
 printf -- "\n -- MAINTENCE --\n"
 printf -- "To start the jail\t: doas service jail start %s\n" "${jail_name}"
 printf -- "To execute the jail\t: doas jexec %s /bin/sh\n" "${jail_name}"
-printf -- "To destroy the jail\t: doas jdestroy.sh %s\n" "${jail_name}"
-printf -- "To manually destroy the jail:\n\t chflags -R 0 /usr/local/jails/containers/${jail_name}\n"
-printf -- "\t rm -rf ${_container_path}/${jail_name}\n"
-printf -- "\t rm ${_jail_conf_file}\n"
-#printf -- "\n\nJail setup script\t: ${jail_setup_script}\n"
-#if assert ${jail_copyin} && validate ${jail_copyin}; then
-#        printf -- "Jail copy in\t: ${jail_copyin}\n"
-#fi
+printf -- "To destroy the jail\t: doas jdestroy %s\n" "${jail_name}"
+printf -- "To manually destroy the jail:\n\t doas chflags -R 0 /usr/local/jails/containers/${jail_name}\n"
+printf -- "\t doas rm -rf ${_container_path}/${jail_name}\n"
+printf -- "\t doas rm ${_jail_conf_file}\n"
 
 # jail.msg --
 # Read the message file and echo the results
