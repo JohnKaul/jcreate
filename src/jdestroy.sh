@@ -2,13 +2,6 @@
 
 ## Support Functions
 # {{{
-# Bail out if we don't have root privileges.
-test_root() {
-		if [ $(id -u) -ne 0 ]; then
-				bailout "This script must be run as root."
-		fi
-}
-
 # err --
 #   all error messages should be directed to `stderr`.
 # EX
@@ -21,6 +14,14 @@ err() {     #{{{
     return 0
 }
 #}}}
+
+# Bail out if we don't have root privileges.
+test_root() {
+        if [ $(id -u) -ne 0 ]; then
+                err "This script must be run as root."
+                exit 1
+        fi
+}
 
 # validate --
 #   validate a variable is either a directory or file (and is readable).
@@ -92,15 +93,19 @@ _jcreate_conf=$(find /usr/local/etc/ -type f -name 'jcreate.conf')
 
 _container_path=$(config_get containers.path ${_jcreate_conf})
 if assert ${_container_path} && validate ${_container_path}; then
-		# stop the jail
-		service jail stop ${jailname}
-		# Remove flags.
-		chflags -R 0 ${_container_path}/${jailname}
-		# Delete directory
-		rm -rf ${_container_path}/${jailname}
+        # stop the jail
+        service jail stop ${jailname}
+        # Remove flags.
+        echo "Deleting the jail container: \"${_container_path}/${jailname}\""
+        chflags -R 0 ${_container_path}/${jailname}
+        # Delete directory
+        rm -rf ${_container_path}/${jailname}
 fi
 
 _container_conf=$(config_get containers.conf ${_jcreate_conf})
 if assert ${_container_conf} && validate ${_container_conf}; then
-		rm ${_container_conf}/${jailname}.conf
+        echo "Removing the conf file: \"${_container_conf}/${jailname}.conf\""
+        rm ${_container_conf}/${jailname}.conf
 fi
+
+echo "Done."
