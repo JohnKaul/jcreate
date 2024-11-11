@@ -1,4 +1,8 @@
 #!/bin/sh
+
+# TODO: add MAC support.
+# -e.g.: $mac="2:bf:b9:4c:4f:0b";
+
 #
 # SYNOPSIS
 # jcreate.sh <template.conf>
@@ -12,7 +16,7 @@
 #       2. Extract the userland (the media).
 #       3. Write the <jail_name>.conf file to the /etc/jail.conf.d/ directory.
 #       4. Copy in an optional jail configuration script and execute it.
-#       5. Copy files into jail; relative to `/usr/local/`.
+#       5. Copy files into jail; relative to `/usr/`.
 #
 # Using this script to generate the <jail>.conf file should aid in the
 # updating maintenance process. -i.e. When the jail needs to be updated,
@@ -275,6 +279,13 @@ run_setup_script() {    #{{{
                         chown root:wheel "${_jail_path}/jailsetup.sh"
                         service jail start ${jail_name}
 
+                        # LOGIC (why this is here): the assumption is
+                        #  that normal scripts will contain the pkg
+                        #  installs but since the directive was given
+                        #  to install packages from the base system, I
+                        #  have to assume these packages will be needed
+                        #  for the setup script supplied and should
+                        #  then be installed.
                         if assert ${jail_packages}; then
                                 # Run 'pkg install' from the host system for
                                 # any packages found in the `jail.packages` file.
@@ -462,7 +473,7 @@ fi
         jail_copyin="$(config_get jail.copyin ${_template_conf})"
         # check variable, locate file and validate
         if assert ${jail_copyin}; then
-                jail_copyin="$(find ${_template_conf%/*} -type f -name "${jail_copyin}")"
+                jail_copyin="$(find ${_template_conf%/*} -type d -name "${jail_copyin}")"
                 jail_copyin="$(readlink -f $jail_copyin)"
                 if ! validate ${jail_copyin}; then
                         err "Spcified \"copy in directory\" is not valid"
@@ -520,7 +531,7 @@ if ! [ -d "${_container_path}/${jail_name}" ]; then
 fi
 
 # copy in the copy_in directory.
-copyinto_userland ${jail_copyin} ${_container_path}/${jail_name}/usr/local/
+copyinto_userland ${jail_copyin} ${_container_path}/${jail_name}/usr/
 
 # Create a minimal jail.conf file to start and configure the jail with the setup script.
 #{{{
@@ -537,6 +548,9 @@ echo "}" >> ${_jail_conf_file}
 #}}}
 
 # Run the jail configuration script
+# TODO: Possible addition would be to support another "include" script
+# --which could be common to all jails--which gets concated to the
+# `jail_setup_script`. -i.e. `cat include.sh jail_setup_script`
 run_setup_script ${jail_setup_script} "${_container_path}/${jail_name}"
 
 # Recreate the jail.conf file, for the configured jail, with the specified mountings.
