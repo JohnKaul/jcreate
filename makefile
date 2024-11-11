@@ -45,6 +45,7 @@ $(PROJECTNAME) :
 install:
 	@$(ECHO) "Installing $(PROJECTNAME) to: $(PREFIX)"
 	@$(SED) 's,/usr/local/etc/,$(CONFPATH),g' $(SRCDIR)/jdestroy.sh > $(PREFIX)/jdestroy
+	@$(CC) $(CFLAGS) $(PREFIX)/jdestroy
 	@$(CP) $(SRCDIR)/$(PROJECTNAME).conf $(CONFPATH)/$(PROJECTNAME).conf
 	@$(SED) 's,/usr/local/etc/,$(CONFPATH),g' $(SRCDIR)/$(PROJECTNAME).sh > $(PREFIX)/$(PROJECTNAME)
 	@$(CC) $(CFLAGS) $(PREFIX)/$(PROJECTNAME)
