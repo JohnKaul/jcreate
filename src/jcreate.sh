@@ -2,7 +2,6 @@
 
 # TODO: add MAC support.
 # -e.g.: $mac="2:bf:b9:4c:4f:0b";
-
 #
 # SYNOPSIS
 # jcreate.sh <template.conf>
@@ -525,6 +524,8 @@ if ! [ -d "${_container_path}/${jail_name}" ]; then
 		# Copy timezone.
 		echo "Copying timezone information"
 		cp /etc/localtime ${_container_path}/${jail_name}/etc/localtime
+
+                echo "hostname=\"${jail_name}\"" >> ${_container_path}/${jail_name}/etc/rc.conf
 
 		# Update to latest patch.
 		# freebsd-update -b ${_container_path}/ fetch install
