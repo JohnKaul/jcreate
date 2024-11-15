@@ -258,6 +258,30 @@ copyinto_userland() {      #{{{
 }
 #}}}
 
+# run_setup_scripts_from_stdin --
+#   This function will read lines from STDIN, locate the listed file,
+#   copy it into the jail container, and execute it.
+run_setup_scripts_from_stdin() {        #{{{
+        while read -r fileline ; do
+        	case "$fileline" in
+        	\#*|'')                         # ignore lines that begin with a hash
+        		;;
+        	*)
+                        scriptline="$(find ${_template_conf%/*} -type f -name "${fileline}")"
+                        scriptline="$(readlink -f ${scriptline})"
+                        if ! validate ${scriptline}; then
+                                err "Specified jail setup script is not valid: ${fileline}"
+                                exit 1
+                        fi
+                        cp "${scriptline}" "${_jail_path}/${fileline}"
+                        chown root:wheel "${_jail_path}/${fileline}"
+                        jexec ${jail_name} "/${fileline}"
+        		;;
+        	esac
+        done
+}
+#}}}
+
 # run_setup_script --
 #   This function will copy the setup script into the jail and run
 #   it.
@@ -273,9 +297,6 @@ run_setup_script() {    #{{{
                 && validate ${_script} \
                 && assert ${_jail_path} \
                 && validate ${_jail_path}; then
-                        echo "Copying in the setup script"
-                        cp "${_script}" "${_jail_path}/jailsetup.sh"
-                        chown root:wheel "${_jail_path}/jailsetup.sh"
                         service jail start ${jail_name}
 
                         # LOGIC (why this is here): the assumption is
@@ -291,8 +312,17 @@ run_setup_script() {    #{{{
                                 pkg -j ${jail_name} install -y `cat ${jail_packages}`
                         fi
 
-                        echo "Configuring jail"
-                        jexec ${jail_name} '/jailsetup.sh'
+                        if [ "${_script##*.}" == ".sh" ]; then
+                                echo "Copying in the setup script"
+                                cp "${_script}" "${_jail_path}/jailsetup.sh"
+                                chown root:wheel "${_jail_path}/jailsetup.sh"
+
+                                echo "Configuring jail"
+                                jexec ${jail_name} '/jailsetup.sh'
+                        fi
+                        if ! [ "${_script##*.}" == ".sh" ]; then
+                                run_setup_scripts_from_stdin < "${_script}"
+                        fi
                         service jail stop ${jail_name}
         fi
 }
