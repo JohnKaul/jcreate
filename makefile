@@ -50,7 +50,8 @@ install:
 	@$(SED) 's,/usr/local/etc/,$(CONFPATH),g' $(SRCDIR)/$(PROJECTNAME).sh > $(PREFIX)/$(PROJECTNAME)
 	@$(CC) $(CFLAGS) $(PREFIX)/$(PROJECTNAME)
 #-X- 	@if [ ! -d $(MANPATH) ]; then mkdir -p $(MANPATH); fi
-	@$(CP) $(DOCDIR)/$(PROJECTNAME).7 $(MANPATH)/$(PROJECTNAME).7
+#-X- 	@$(CP) $(DOCDIR)/$(PROJECTNAME).7 $(MANPATH)/$(PROJECTNAME).7
+	@$(SED) -e 's,/usr/local/etc/,$(CONFPATH),g' -e 's,/usr/local/bin/,$(PREFIX),g'$(DOCDIR)/jcreate.7 > $(MANPATH)/$(PROJECTNAME).7
 
 uninstall: remove
 remove:
