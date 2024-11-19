@@ -164,7 +164,6 @@ validate() {        #{{{
            err "Source not readable: ${_source}"
            return 1
        fi
-#       return 0
    else
        err "source not valid: $*"
        return 1
@@ -188,14 +187,26 @@ assert() {      #{{{
    if [ -z $_source ]; then
        return 1
    fi
-#   return 0
+}
+#}}}
+
+# get_file_contents_without_comments --
+#   Return the contents of a file without comments.
+#   File's comments can be either simple conf style
+#   -i.e. hash (#) or c-style (/* */).
+# EX
+#  (get_file_contents_without_comments "${1}" | grep -E "VALUE" -m 1 2>/dev/null)
+get_file_contents_without_comments() {          #{{{
+        (grep -v -e '#' -e '/\*' -e '*' -e '\*/' "${1}")
 }
 #}}}
 
 # config_read_file --
 #    Read a file and look for a value.
 config_read_file() {        #{{{
-    (grep -E "${2}=" -m 1 "${1}" 2>/dev/null) | head -n 1 | cut -d '=' -f 2-;
+        (get_file_contents_without_comments "${1}" | \
+                grep -e "${2}*=*" -m 1 2>/dev/null) | \
+                head -n 1 | cut -d '=' -f 2-;
 }
 #}}}
 
@@ -284,7 +295,9 @@ run_setup_scripts_from_stdin() {        #{{{
 
 # run_setup_script --
 #   This function will copy the setup script into the jail and run
-#   it.
+#   it if the argument is a script file. This function will call the
+#   `run_setup_scripts_from_stdin()` if the argument is a file with
+#   a list of scripts.
 # EX
 #   run_setup_script ${jail_setup_script} "${_container_path}/${jail_name}"
 run_setup_script() {    #{{{
@@ -309,7 +322,8 @@ run_setup_script() {    #{{{
                         if assert ${jail_packages}; then
                                 # Run 'pkg install' from the host system for
                                 # any packages found in the `jail.packages` file.
-                                pkg -j ${jail_name} install -y `cat ${jail_packages}`
+                                pkg -j ${jail_name} install -y \
+                                        (get_file_contents_without_comments ${jail_packages})
                         fi
 
                         if [ "${_script##*.}" == ".sh" ]; then
@@ -579,10 +593,14 @@ echo "}" >> ${_jail_conf_file}
 #}}}
 
 # Run the jail configuration script
-# TODO: Possible addition would be to support another "include" script
-# --which could be common to all jails--which gets concated to the
-# `jail_setup_script`. -i.e. `cat include.sh jail_setup_script`
 run_setup_script ${jail_setup_script} "${_container_path}/${jail_name}"
+
+# Get the `ip` from the base jail.conf file and assemble an IP address to add
+# to the <jailname>.conf file. This isn't necessary, but it won't hurt either;
+# user can `cat` the <jailname>.conf file to get information and this will be
+# a convenience.
+ip=$(config_get \$ip /etc/jail.conf)
+ip=$(echo $ip | awk -F"." '{print $1"."$2"."$3}' | cut -d '"' -f 2-)
 
 # Recreate the jail.conf file, for the configured jail, with the specified mountings.
 echo "Creating the jail.conf file."
@@ -610,6 +628,7 @@ echo "
 ${jail_name} {
   # NETWORKS/INTERFACES
   \$id = "${jail_epairid}";
+  \$ip = $ip.${jail_epairid};
 " > ${_jail_conf_file}
 
 check_sysv ${_jail_conf_file}
