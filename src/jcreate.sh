@@ -1,7 +1,14 @@
 #!/bin/sh
 
-# TODO: add MAC support.
-# -e.g.: $mac="2:bf:b9:4c:4f:0b";
+# TODO: 
+# 1. add MAC support.
+#       -e.g.: $mac="2:bf:b9:4c:4f:0b";
+# 2. hardcode the jail ID to the epair ID.
+#       -e.g.: jid=${id};
+# 3. Implement a `exec.poststart` variable.
+#       -e.g. exec.poststart += "cp /var/jails/jobs/plex.crontab /etc/cron.d/plex.crontab";
+# 4. Implement a `exec.prestop` variable.
+#       -e.g. exec.prestop += "rm /etc/cron.d/plex.crontab";
 #
 # SYNOPSIS
 # jcreate.sh <template.conf>
@@ -439,6 +446,11 @@ fi
 ## SCRIPT VARIABLES
 ## These variables are necessary to run the script.
 
+        # logfile --
+        #       Keep a log for later reference.
+        logfile=/var/log/jail_create_${jail_name}.log
+        echo "----------------------------------------x- $(date +'%Y-%m-%d %H:%M:%S') -x------" >> ${logfile}
+
         # _template_conf --
         #       Template to pull jail variables from
         _template_conf=$1
@@ -606,7 +618,7 @@ ip=$(echo $ip | awk -F"." '{print $1"."$2"."$3}' | cut -d '"' -f 2-)
 echo "Creating the jail.conf file."
 #{{{
 # Create the jail.conf file.
-echo "
+cat <<_EOF_ >${_jail_conf_file}
 # ${jail_name}
 # The steps taken to create this jail:
 #
@@ -628,8 +640,8 @@ echo "
 ${jail_name} {
   # NETWORKS/INTERFACES
   \$id = "${jail_epairid}";
-  \$ip = $ip.${jail_epairid};
-" > ${_jail_conf_file}
+  #\$ip = $ip.${jail_epairid};
+_EOF_
 
 check_sysv ${_jail_conf_file}
 check_mlock ${jail_mlock} ${_jail_conf_file}
@@ -638,22 +650,46 @@ check_mounts ${jail_mounts} ${_jail_conf_file}
 echo "}" >> ${_jail_conf_file}
 #}}}
 
-## Report results.
-printf -- "\n -- CONFIGURATION --\n"
-printf -- "Media path\t\t: %s\n" "${_userland_path}"
-printf -- "Container path\t\t: %s/%s\n" "${_container_path}" "${jail_name}"
-printf -- "Container config path\t: %s\n" "${_container_conf}"
-printf -- "Jail name\t\t: %s\n" "${jail_name}"
-printf -- "Jail epairid\t\t: %s\n" "${jail_epairid}"
-printf -- "Jail IP\t\t\t: 192.168.0.%s\n" "${jail_epairid}"
-printf -- "Jail config\t\t: %s\n" "${_jail_conf_file}"
-printf -- "\n -- MAINTENCE --\n"
-printf -- "To start the jail\t: doas service jail start %s\n" "${jail_name}"
-printf -- "To execute the jail\t: doas jexec %s /bin/sh\n" "${jail_name}"
-printf -- "To destroy the jail\t: doas jdestroy %s\n" "${jail_name}"
-printf -- "To manually destroy the jail:\n\t doas chflags -R 0 /usr/local/jails/containers/${jail_name}\n"
-printf -- "\t doas rm -rf ${_container_path}/${jail_name}\n"
-printf -- "\t doas rm ${_jail_conf_file}\n"
+# Create a log file.
+cat <<_EOF_ >>${logfile}
+-- CONFIGURATION --
+Media path              : ${_userland_path}
+Container path          : ${_container_path} ${jail_name}
+Container config path   : ${_container_conf}
+Jail name               : ${jail_name}
+Jail epairid            : ${jail_epairid}
+Jail IP                 : 192.168.0.${jail_epairid}
+Jail config             : ${_jail_conf_file}
+-- MAINTENCE --
+To start the jail       : doas service jail start ${jail_name}
+To execute the jail     : doas jexec ${jail_name} /bin/sh
+To destroy the jail     : doas jdestroy ${jail_name}
+To manually destroy the jail:
+        doas chflags -R 0 /usr/local/jails/containers/${jail_name}
+        doas rm -rf ${_container_path}/${jail_name}
+        doas rm ${_jail_conf_file}
+
+_EOF_
+
+# Prompt the user as well.
+cat <<_EOF_ >&1
+-- CONFIGURATION --
+Media path              : ${_userland_path}
+Container path          : ${_container_path} ${jail_name}
+Container config path   : ${_container_conf}
+Jail name               : ${jail_name}
+Jail epairid            : ${jail_epairid}
+Jail IP                 : 192.168.0.${jail_epairid}
+Jail config             : ${_jail_conf_file}
+-- MAINTENCE --
+To start the jail       : doas service jail start ${jail_name}
+To execute the jail     : doas jexec ${jail_name} /bin/sh
+To destroy the jail     : doas jdestroy ${jail_name}
+To manually destroy the jail:
+        doas chflags -R 0 /usr/local/jails/containers/${jail_name}
+        doas rm -rf ${_container_path}/${jail_name}
+        doas rm ${_jail_conf_file}
+_EOF_
 
 # jail.msg --
 # Read the message file and echo the results
