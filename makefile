@@ -30,7 +30,8 @@ PROJECTNAME = jcreate
 #
 SOURCES =	\
 		$(SRCDIR)/jcreate.sh \
-		$(SRCDIR)/jdestroy.sh
+		$(SRCDIR)/jdestroy.sh \
+		$(SRCDIR)/jlist.sh
 
 # ==============================================================
 # Begin makefile
@@ -47,6 +48,7 @@ install:
 	@$(SED) 's,/usr/local/etc/,$(CONFPATH),g' $(SRCDIR)/jdestroy.sh > $(PREFIX)/jdestroy
 	@$(CC) $(CFLAGS) $(PREFIX)/jdestroy
 	@$(CP) $(SRCDIR)/$(PROJECTNAME).conf $(CONFPATH)/$(PROJECTNAME).conf
+	@$(CP) $(SRCDIR)/jlist.sh $(PREFIX)/jlist
 	@$(SED) 's,/usr/local/etc/,$(CONFPATH),g' $(SRCDIR)/$(PROJECTNAME).sh > $(PREFIX)/$(PROJECTNAME)
 	@$(CC) $(CFLAGS) $(PREFIX)/$(PROJECTNAME)
 	@$(SED) -e 's,/usr/local/etc/,$(CONFPATH),g' -e 's,/usr/local/bin/,$(PREFIX),g' $(DOCDIR)/jcreate.7 > $(MANPATH)/$(PROJECTNAME).7
@@ -63,5 +65,7 @@ remove:
 	@if [ -f $(CONFPATH)/$(PROJECTNAME).conf ]; then $(RM) $(CONFPATH)/$(PROJECTNAME).conf; fi
 	# manpage
 	@if [ -f $(MANPATH)/$(PROJECTNAME).7 ]; then $(RM) $(MANPATH)/$(PROJECTNAME).7; fi
+	# jlist
+	@if [ -f $(PREFIX)/jlist ]; then $(RM) $(PREFIX)/jlist; fi
 
 # vim: set noet set ff=unix
