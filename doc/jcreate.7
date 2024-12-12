@@ -7,16 +7,16 @@
 jcreate -- a program to create jail.conf type jails.
 .Pp
 .Sh  SYNOPSIS
-jcreate [template.conf]
+jcreate template.conf
 .Pp
-jdestroy [jail name]
+jdestroy jail_name
 .Pp
 .Sh  DESCRIPTION
-This script will set up a jail (extract userland, copy in directories, run setup scripts, and install packages) and create a `<jailname>.conf` jail configuration file in `/etc/jail.conf.d/` based on a config file which contains the jail name, epairid, mount points, packages to install, and setup scripts. 
+This script will set up a jail (extract userland, copy in directories, run setup scripts, and install packages) and create a `<jailname>.conf` jail configuration file in `/etc/jail.conf.d/` based on a config file which contains the jail name, epairid, mount points, packages to install, and setup scripts.
 .Pp
 The userland extraction step is skipped if the jail container already exists, which aids in jail maintenance and/or use of thin jails.
 .Pp
-Packages can either be installed from the host system (via the `jail.packages` variable/file) or from within the `jail.config` script itself (via the standard FreeBSD `pkg install` method). 
+Packages can either be installed from the host system (via the `jail.packages` variable/file) or from within the `jail.config` script itself (via the standard FreeBSD `pkg install` method).
 .Pp
 Mount points--specified in the `jail.mounts` variable/file--within the jail are added to the `<jailname>.conf` file.  It is assumed that the setup script will create the necessary directories to support the mounts.
 .Pp
@@ -24,24 +24,25 @@ Mount points--specified in the `jail.mounts` variable/file--within the jail are 
 Variables are marked as REQUIRED or OPTIONAL.
 .Pp
 .Bl -tag -width Ds
-.It Fl jail.name 
-REQUIRED: The name of the jail
+.It Fl jail.name
+.Em REQUIRED
+: The name of the jail
 .Pp
-.It Fl jail.epairid 
-REQUIRED:
-This is the last few digits of the jails IP address.
+.It Fl jail.epairid
+.Em REQUIRED
+: This is the last few digits of the jails IP address.
 .Pp
-.It Fl jail.packages 
-OPTIONAL:
-A file with a list of packages to be installed from the host system. The file should contain a package one per line.
+.It Fl jail.packages
+.Em OPTIONAL
+: A file with a list of packages to be installed from the host system. The file should contain a package one per line.
 .Pp
-.It Fl jail.mounts 
-OPTIONAL:
-The file which contains the mount locations. These mounts get added to to the `<jailname>.conf` file in the `/etc/jail.conf.d/` directory.
+.It Fl jail.mounts
+.Em OPTIONAL
+: The file which contains the mount locations. These mounts get added to to the `<jailname>.conf` file in the `/etc/jail.conf.d/` directory.
 .Pp
-.It Fl jail.config 
-OPTIONAL:
-A configuration script or a file with a list of scripts to be copied into the jail and executed. A file with a list of scripts should contain one script per line (commented lines with a hash [#] are ignored).
+.It Fl jail.config
+.Em OPTIONAL
+: A configuration script or a file with a list of scripts to be copied into the jail and executed. A file with a list of scripts should contain one script per line (commented lines with a hash [#] are ignored).
 .Pp
 A file with multiple scripts should allow for a few different maintenance/setup scenarios:
 .Pp
@@ -49,74 +50,169 @@ A file with multiple scripts should allow for a few different maintenance/setup 
 .Pp
 2. Package configurations can be kept in separate scripts–for easier maintenance (or whatever reason)–and loaded separately and run in a specific order -e.g. “database.sh”, “serversetup.sh”, “appsetup.sh”.
 .Pp
-.It Fl  jail.copyin 
-OPTIONAL:
-Files to copy in relative to the jail's `/usr` directory.
+.It Fl  jail.copyin
+.Em OPTIONAL
+: Files to copy in relative to the jail's `/usr` directory.
 .Pp
-.It Fl  jail.mlock=1 
-OPTIONAL:
-Allow jail to mlock.
+.It Fl  jail.mlock=1
+.Em OPTIONAL
+: Allow jail to mlock.
 .Pp
-.It Fl  jail.systemv=1 
-OPTIONAL:
-Allow all three `sysvmsg`, `sysvsem`, and `sysvshm` options.
+.It Fl  jail.systemv=1
+.Em OPTIONAL
+: Allow all three `sysvmsg`, `sysvsem`, and `sysvshm` options.
 .Pp
-.It Fl  jail.sysvmsg=new 
-OPTIONAL:
-Allow access to SYSV IPC message primitives.  If set to “inherit”, all IPC objects on the system are visible to this jail, whether they were created by the jail itself, the base system, or other jails.  If set to “new”, the jail will have its own key namespace, and can only see the objects that it has created; the system (or parent jail) has access to the jail's objects, but not to its keys.  If set to “disable”, the jail cannot perform any sysvmsg-related system calls.
+.It Fl  jail.sysvmsg=new
+.Em OPTIONAL
+: Allow access to SYSV IPC message primitives.  If set to “inherit”, all IPC objects on the system are visible to this jail, whether they were created by the jail itself, the base system, or other jails.  If set to “new”, the jail will have its own key namespace, and can only see the objects that it has created; the system (or parent jail) has access to the jail's objects, but not to its keys.  If set to “disable”, the jail cannot perform any sysvmsg-related system calls.
 .Pp
-.It Fl  jail.sysvsem=new 
-OPTIONAL: Allow access to SYSV IPC semaphore and shared memory primitives, in the same manner as sysvmsg.
+.It Fl  jail.sysvsem=new
+.Em OPTIONAL
+: Allow access to SYSV IPC semaphore and shared memory primitives, in the same manner as sysvmsg.
 .Pp
-.It Fl  jail.sysvshm=new 
-OPTIONAL: Allow access to SYSV IPC semaphore and shared memory primitives, in the same manner as sysvmsg.
-.Pp
+.It Fl  jail.sysvshm=new
+.Em OPTIONAL
+: Allow access to SYSV IPC semaphore and shared memory primitives, in the same manner as sysvmsg.
 .El
 .Pp
-Example template.conf:
+.Em Example
+template.conf:
 .Bd -literal -offset indent
+    /* mytemplate.conf --
+     *    This configuration will create a jail with the following
+     *    properties.
+     *     name:   mytemplate
+     *     IP:     192.168.0.64
+     */
     config {
        jail.name=mytemplate
        jail.epairid=64
        jail.mounts=mounts
-       jail.confg=mytemplate.sh
        jail.packages=packages
+       jail.confg=setup.sh
     }
 .Ed
 .Pp
-Example mounts file:
+.Em Example
+mounts file:
 .Bd -literal -offset indent
-    ----
-    mount += \\"[dir1] [dir1] nulfs 0 0\\";
-    mount += \\"[dir2] [dir2] nulfs 0 0\\";
-    ----
+    /* mounts --
+     *    These are the mount directories for
+     *    the `mytemplate` jail.
+     */
+    mount += \\"hostdir1 $path/jaildir1 nulfs 0 0\\";
+    mount += \\"hostdir2 $path/jaildir2 nulfs 0 0\\";
 .Ed
 .Pp
-Example packages file:
+.Em Example
+packages file:
 .Bd -literal -offset indent
-    ----
+    /* packaes --
+     *    These are the packages to install for
+     *    the `mytemplate` jail */
     git-tiny
     vim
-    perl5
+    # perl5
     vifm
     mdnsresponder
-    ----
 .Ed
+.Em NOTE
+The `perl5` package is commented out and thuss will not be installed.
+.Pp
+.Em Example
+setup.sh:
+.Bd -literal -offset indent
+    # Create/touch /etc/rc.conf file.
+    touch /etc/rc.conf
+.Pp
+    # Disable sendmail.
+    service sendmail onedisable || true
+.Pp
+    # Create /usr/local/etc/rc.d directory.
+    mkdir -p /usr/local/etc/rc.d
+.Pp
+    #
+    # CRON
+    cat <<_EOF_ >>/etc/crontab
+    #
+    # Issue a `pkg upgrade` hourly.
+    @hourly	root	pkg upgrade -y && pkg update
+    _EOF_
+.Pp
+    #
+    # SSHD
+    cat <<_EOF_ >>/etc/ssh/sshd_config
+    Protocol 2
+    HostKey /etc/ssh/ssh_host_ed25519_key
+.Pp
+    PermitRootLogin no     # Off by default but put here as a reminder/flag.
+    StrictModes yes
+.Pp
+    PasswordAuthentication no
+    ChallengeResponseAuthentication no
+    PubkeyAuthentication yes
+.Pp
+    IgnoreUserKnownHosts no
+    ## Don't read the user's ~/.rhosts and ~/.shosts files
+    IgnoreRhosts yes
+.Pp
+    ## override default of no subsystems
+    Subsystem	sftp	/usr/libexec/sftp-server
+.Pp
+    AllowUsers admin
+    _EOF_
+.Pp
+    sysrc sshd_enable="YES"
+    service sshd enable || true
+.Pp
+    /usr/bin/ssh-keygen -A                 # Generate all keys.
+.Pp
+    service sshd start || true
+    service sshd restart || true
+.Pp
+    #
+    # ADMIN USER
+    #   user: admin
+    #   pass: admin
+    pw user add -n admin -d /home/admin -G wheel -m -s /bin/csh -w yes
+    chmod 754 /home/admin
+.Ed
+.Pp
+.Sh  COMMENTS
+Configuraation files can contain comments in the common C, and shell format.
+.Pp
+.Em Example
+File comments:
+.Bd -literal -offset indent
+    /* This is a C style comment.
+     * It may span multiple lines.
+     */
+.Pp
+    #  This is a shell style comment.
+.Ed
+.Pp
+Comments are legal wherever whitespace is allowed, -i.e. anywhere EXCEPT in the middle of a string or a token.
+.Pp
 .Pp
 .Sh  JCREATE CONFIGURATION
 The default `jcreate.conf` confuration file should contain the following variables.
+.Pp
 .Bl -tag -width Ds
 .It Fl media.path
+.Em REQUIRED
 A location to where the userland.
 .Pp
 .It Fl containers.path
+.Em REQUIRED
 A location where to extract the userland (where the jail will reside)
 .Pp
 .It Fl containers.conf
+.Em REQUIRED
 A location where to keep the jail configuration files (EX: /etc/jail.conf.d)
-.El
 .Pp
-Example jcreate.conf:
+.El
+.Em Example
+jcreate.conf:
 .Bd -literal -offset indent
     config {
         media.path=/usr/local/jails/media/14.1-RELEASE-base.txz
@@ -125,14 +221,15 @@ Example jcreate.conf:
     }
 .Ed
 .Pp
+.Pp
 .Sh  LOCATIONS
+The locations to where the programs are installed.
 .Bl -tag -width Ds
 .It Fl jcreate/jdestroy
 /usr/local/bin
 .Pp
 .It Fl jcreate.conf
 /usr/local/etc
-.Pp
 .El
 .Pp
 .Sh  USERLAND DOWNLOAD (From the FreeBSD Handbook)
@@ -142,6 +239,8 @@ In principle, a jail only needs a hostname, a root directory, an IP address, and
 .Bd -literal -offset indent
   # fetch https://download.freebsd.org/ftp/releases/amd64/amd64/14.1-RELEASE/base.txz -o /usr/local/jails/media/14.1-RELEASE-base.txz
 .Ed
+.Pp
+.Pp
 .Sh  BASIC JAIL CONFIGURATION
 The next step is to create a common `jail.conf` file in `/etc/` that will be used by all jail configurations in `/etc/jail.conf.d/`. The last line in the `/etc/jail.conf` file contains an `include` directive for all `<jailname>.conf` files found in the `/etc/jail.conf.d` directory.
 .Pp
@@ -187,6 +286,7 @@ The `/etc/jail.conf` file should look something like (your needs may very slight
     .include "/etc/jail.conf.d/*.conf";
 .Ed
 .Pp
+.Pp
 .Sh  EXAMPLE USAGE
 To create a jail from the example "mytemplate" jail configuration above:
 .Bd -literal -offset indent
@@ -198,8 +298,20 @@ To destroy a jail (delete the userland container and the `/etc/jail.conf.d/mytem
     $ doas jdestroy mytemplate
 .Ed
 .Pp
+.Pp
 .Sh  HISTORY
-Created for personal use.
+Created for my personal use.
+.Pp
+.Pp
+.Sh  AUTHOR
+John Kaul (john.kaul@outlook.com)
+ytemplate
+.Ed
+.Pp
+.Pp
+.Sh  HISTORY
+Created for my personal use.
+.Pp
 .Pp
 .Sh  AUTHOR
 John Kaul (john.kaul@outlook.com)
