@@ -36,15 +36,35 @@ config_get() {      #{{{
 }
 #}}}
 
+# aif --
+#   Aniphoric if.
+#	This function will check an `expr` is not NULL before returned,
+#	otherwise an `iffalse` value is returned.
+# EX
+#		var=$(aif $(some_expr) 7)
+aif() {		#{{{
+        local expr=$1
+        local iffalse=$2
+        if [ -n $expr ] && \
+           [ $expr != "-" ]; then
+                echo $expr;
+        else
+                echo $iffalse;
+        fi
+}
+#}}}
+
 ip=$(config_get \$ip /etc/jail.conf)
 ip=$(echo $ip | awk -F"." '{print $1"."$2"."$3}' | cut -d '"' -f 2-)
 
-printf "   JID NAME\tIP\t\tHOSTNAME\tOS RELEASE\tPATH\n"
+printf "   %-4s %-12s %-16s %-16s %-16s %-5s\n"   "JID" "NAME" "IP" "HOSTNAME" "OS RELEASE" "PATH"
 /usr/sbin/jls name host.hostname osrelease jid path | while read name hostname osrelease jid path
 do
+        # Check the jail ip4.addr with `jls`
+        ip=$(aif $(/usr/sbin/jls -j $name ip4.addr) $ip)
         # pull the ID from the jail's config file.
         id=$(config_get \$id /etc/jail.conf.d/$name.conf)
         # strip the semi-colon.
         id=$(echo $id | awk -F";" '{print $1}')
-        printf "   $jid  $name\t$ip.$id\t$hostname\t\t$osrelease\t$path\n"
+        printf "   %-4s %-12s %s.%-6s %-16s %-16s %-5s\n"   $jid $name $ip $id $hostname $osrelease $path
 done
