@@ -558,6 +558,9 @@ fi
                 jail_packages="$(readlink -f ${jail_packages})"
         fi
 
+        jail_poststart="$(config_get jail.poststart ${_template_conf})"
+        jail_prestop="$(config_get jail.prestop ${_template_conf})"
+
 ##
 ## Jail Creating.
 ##  At this point in the script all the variables should be asserted
@@ -647,6 +650,14 @@ _EOF_
 check_sysv ${_jail_conf_file}
 check_mlock ${jail_mlock} ${_jail_conf_file}
 check_mounts ${jail_mounts} ${_jail_conf_file}
+
+if assert ${jail_poststart}; then
+        echo "exec.poststart += ${jail_poststart};"
+fi
+
+if assert ${jail_prestop}; then
+        echo "exec.prestop += ${jail_prestop};"
+fi
 
 echo "}" >> ${_jail_conf_file}
 #}}}
