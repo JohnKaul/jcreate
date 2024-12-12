@@ -73,6 +73,14 @@ A file with multiple scripts should allow for a few different maintenance/setup 
 .It Fl  jail.sysvshm=new
 .Em OPTIONAL
 : Allow access to SYSV IPC semaphore and shared memory primitives, in the same manner as sysvmsg.
+.Pp
+.It Fl  jail.poststart
+.Em OPTIONAL
+: Command(s) to run in the system environment after a jail is created, and after any exec.start commands have completed.
+.Pp
+.It Fl  jail.prestop
+.Em OPTIONAL
+: Command(s) to run in the system environment before a jail is removed.
 .El
 .Pp
 .Em Example
@@ -296,16 +304,6 @@ To create a jail from the example "mytemplate" jail configuration above:
 To destroy a jail (delete the userland container and the `/etc/jail.conf.d/mytemplate.conf` file:
 .Bd -literal -offset indent
     $ doas jdestroy mytemplate
-.Ed
-.Pp
-.Pp
-.Sh  HISTORY
-Created for my personal use.
-.Pp
-.Pp
-.Sh  AUTHOR
-John Kaul (john.kaul@outlook.com)
-ytemplate
 .Ed
 .Pp
 .Pp
