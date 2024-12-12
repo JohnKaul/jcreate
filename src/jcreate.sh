@@ -1,14 +1,15 @@
 #!/bin/sh
 
-# TODO: 
-# 1. add MAC support.
-#       -e.g.: $mac="2:bf:b9:4c:4f:0b";
-# 2. hardcode the jail ID to the epair ID.
-#       -e.g.: jid=${id};
-# 3. Implement a `exec.poststart` variable.
+# TODO:
+# 1. Implement a `exec.poststart` variable.
 #       -e.g. exec.poststart += "cp /var/jails/jobs/plex.crontab /etc/cron.d/plex.crontab";
-# 4. Implement a `exec.prestop` variable.
+# 2. Implement a `exec.prestop` variable.
 #       -e.g. exec.prestop += "rm /etc/cron.d/plex.crontab";
+# 3. Implement a `host.postcreate` variable to copy or launch any extra scripts
+#    that do setup on the host.
+#       -e.g. host.postcreate = "host_setup_script.sh"
+#             ~ which will create directories or copy setup scripts for use
+#               in the `exec.poststart` / `exec/prestop` jail.conf variables.
 #
 # SYNOPSIS
 # jcreate.sh <template.conf>
