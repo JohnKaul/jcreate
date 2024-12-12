@@ -1,0 +1,33 @@
+.Dd Dec 11 2024
+.Dt jlist
+.Os
+.Au John Kaul
+.Pp
+.Sh  NAME
+jlist -- a program to create a `jls` like output for jails with VNET.
+.Pp
+.Sh  SYNOPSIS
+jlist
+.Pp
+.Sh  DESCRIPTION
+Currently FreeBSD's base `jls` utility does not display a jail's IP if the jail uses VNET. This is a simple alternate script to display a list of jails that will also list a jails IP address and OS Release.
+.Pp
+The `jlist` will display jails like:
+.Bd -literal -offset indent
+   JID  NAME         IP               HOSTNAME         OS RELEASE       PATH
+   1    emby         192.168.1.1      emby             14.1-RELEASE     /usr/local/jails/containers/emby
+   2    plex         192.168.1.2      plex             14.1-RELEASE     /usr/local/jails/containers/plex
+.Ed
+.Pp
+An alias can be defined in your shell rc file to use `jlist` instead of `jls`.
+.Pp
+.Bd -literal -offset indent
+	alias jls='jlist'
+.Ed
+.Pp
+.Sh  HISTORY
+Created for my personal use.
+.Pp
+.Pp
+.Sh  AUTHOR
+John Kaul (john.kaul@outlook.com)
