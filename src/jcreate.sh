@@ -331,7 +331,7 @@ run_setup_script() {    #{{{
                                 # Run 'pkg install' from the host system for
                                 # any packages found in the `jail.packages` file.
                                 pkg -j ${jail_name} install -y \
-                                        (get_file_contents_without_comments ${jail_packages})
+                                        $(get_file_contents_without_comments ${jail_packages})
                         fi
 
                         if [ "${_script##*.}" == ".sh" ]; then
@@ -446,11 +446,6 @@ fi
 ##
 ## SCRIPT VARIABLES
 ## These variables are necessary to run the script.
-
-        # logfile --
-        #       Keep a log for later reference.
-        logfile=/var/log/jail_create_${jail_name}.log
-        echo "----------------------------------------x- $(date +'%Y-%m-%d %H:%M:%S') -x------" >> ${logfile}
 
         # _template_conf --
         #       Template to pull jail variables from
@@ -569,6 +564,10 @@ fi
 
 # Name of configuration file to create.
 _jail_conf_file=${_container_conf}/${jail_name}.conf
+
+# The logfile which keep information for later reference.
+logfile=/var/log/jail_create_${jail_name}.log
+echo "----------------------------------------x- $(date +'%Y-%m-%d %H:%M:%S') -x------" >> ${logfile}
 
 # LOGIC:
 # - If the userland already exists, skip extracting; this could be
