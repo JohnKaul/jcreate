@@ -232,7 +232,7 @@ helper setup script that can be installed into the jail to run):
 10. Use the body to explain what and why vs. how
 
 ## HISTORY
-Created for personal use.
+Created for my personal use.
 
 ## AUTHOR
 * John Kaul - john.kaul@outlook.com
