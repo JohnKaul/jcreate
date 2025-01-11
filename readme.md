@@ -4,33 +4,99 @@ File Last Updated: 12.11.24 19:52:30
 Author:  John Kaul <john.kaul@outlook.com>
 ------------------------------------------------------------------>
 
-# jcreate / jdestroy / jlist / script-writer
+# JCREATE
 
 ## BRIEF
 
-jcreate configfile
+`jcreate` configfile
 
-jdestroy jailname
+`jdestroy` jailname
 
-jlist
+`jlist`
 
-script-writer.sh adduser JOHN ABC123
+`script-writer.sh` [adduser JOHN ABC123]
 
 ## DESCRIPTION
-
 A few shell scripts to create/destroy classic jails in FreeBSD with a
 `jail.conf` file located in `/etc/jail.conf.d/`.
 
-These scripts are not very robust and/but should offer a very
-simplistic jail creation tool. The jail configurations are done with a
-user supplied script which is copied in and run.
+### JCREATE
+This script will create a classic jail by extracting a userland and
+creating a jail.conf file in the `/etc/jail.conf.d/` directory.
+However, `jcreate` is not a jail manager, it only sets up the jail
+container and writes a jail.conf file. This allows FreeBSD itself to
+manage the jail.  So, in other words, `jcreate` sets up the jail
+container by reading a configuration file and preforms the steps based
+on that config file.
 
-Jail creating configutation is done with a few simple config files;
-1. for the userland location (where to get and extract the userland from/to)
-2. another for the jail type (name of jail, mount points, etc.)
+Most (if not all) jail managers require command line switches to be
+passed to them to establish things like "name", "network", etc. but
+this script allows you to keep this information within a configuration
+file instead. This promotes better organization and code reuse for
+setting up jails and allows for creating and recreating jails quickly
+and easily.
+
+An example of the configuration file `jcreate` reads looks something like:
+```script
+    /* myjail1.conf --
+     *    This is the configuration for a classic jail with the following
+     *    properties.
+     *     name:   myjail1
+     *     IP:     192.168.0.64
+     */
+    config {
+       jail.name=myjail1
+       jail.epairid=64
+       jail.mounts=mounts
+       jail.packages=packages
+       jail.confg=setup.sh
+    }
+```
+Using this example configuation file, `jcreate` will:
+1. Extract the userland (if it does not already exist).
+2. Install the packages listed in the "packages" file.
+3. Copy in the "setup.sh" script and execute it.
+4. Create a `/etc/jail.conf.d/myjai1.conf` file.
+
+Since more often than not, several jails are created on a system, a
+directory to host custom configurations for jails should be
+established.
+
+For example: `~/jail_configurations/`
+```bash
+~/jail_configurations
+    |
+    +-- myjail1
+    |       |
+    |       +-- myjail1.conf
+    |       |
+    |       +-- mounts
+    |       |
+    |       +-- packages
+    |       |
+    |       +-- setup.sh
+    |
+    +-- myjail2
+    |       |
+    ...
+```
+The examples directory in this repository contains two (2) simple
+examples. 
+
+After configurations are created (re)creating jails can be done with a
+single command.
+```bash
+    # doas jcreate ~/jail_configuraitons/myjail1/myjail1.conf
+```
+
+### JDESTROY
+This tool simply deletes a jail. The userland container will be
+removed as well as the jail.conf file in the `/etc/jail.conf.d/`
+directory.
+
 
 ## BASIC JAIL CONFIGURATION
-We first need to establish some defaults in the `jail.conf` file in `/etc/`.
+A common set of jail rules should be defined in the base `jail.conf` file located in `/etc/`. These are properties all subsiquent jails will have (all properties lited in configuration files in `/etc/jail.conf.d/` will be overrides to these properties.
 
 The `/etc/jail.conf` should look something like (your needs may very slightly):
 ```script
@@ -45,8 +111,8 @@ The `/etc/jail.conf` should look something like (your needs may very slightly):
     # PERMISSIONS
     allow.raw_sockets;
     exec.clean;
-    #mount.devfs;
-    #devfs_ruleset = 5;
+    mount.devfs;
+    devfs_ruleset = 5;
 
     # PATH/HOSTNAME
     path = "/usr/local/jails/containers/${name}";
@@ -75,8 +141,8 @@ The `/etc/jail.conf` should look something like (your needs may very slightly):
 ```
 
 ## JCREATE CONFIGURATION
-Configuration for `jcreate` is only so the script knows where to
-find the userland and where to extract it to.
+Configuration for `jcreate` is only so the script knows where to find
+the userland and where to extract it to.
 
 The default `jcreate.conf` confuration file should contain the following variables.
 
@@ -85,7 +151,7 @@ The default `jcreate.conf` confuration file should contain the following variabl
 * `containers.conf` (REQUIRED) - A location where to store the jail configuration files.
 
 ## TEMPLATE CONFIGURATION
-To create a jail, `jcreate` needs a few more variables and these are specific to each jail.
+Each jail may require different properties and each template configutaion can have their own set of values defined with the following variables.
 
 * `jail.name` (REQUIRED) - The name of the jail
 * `jail.epairid` (REQUIRED) - This is the last few digits of the jails IP address.
@@ -121,8 +187,14 @@ up an admin user (`admin`) with a password of `admin` for ssh access.
 
 ## INSTALL INSTRUCTIONS
 
+```bash
+$ cd jcreate
+$ doas make install
+```
+
 ### DEFAULT LOCATIONS
-Run `configure` to change locations.
+After cloning this repository run `configure` to change locations
+before issuing `make install`.
 
 | FILE          | LOCATION                    |
 | ------------- | --------------------------- |
@@ -131,11 +203,6 @@ Run `configure` to change locations.
 | jlist         | /usr/local/bin              |
 | jcreate.conf  | /usr/local/etc              |
 | jcreate.7     | /usr/local/share/man/man7   |
-
-```bash
-$ cd jcreate
-$ doas make install
-```
 
 # JLIST DESCRIPTION
 Because the base `jls` utility does not display the jail's IP if the
