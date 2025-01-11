@@ -52,7 +52,7 @@ An example of the configuration file `jcreate` reads looks something like:
        jail.confg=setup.sh
     }
 ```
-Using this example configuation file, `jcreate` will:
+Using this example configuration file, `jcreate` will:
 1. Extract the userland (if it does not already exist).
 2. Install the packages listed in the "packages" file.
 3. Copy in the "setup.sh" script and execute it.
@@ -96,7 +96,10 @@ directory.
 
 
 ## BASIC JAIL CONFIGURATION
-A common set of jail rules should be defined in the base `jail.conf` file located in `/etc/`. These are properties all subsiquent jails will have (all properties lited in configuration files in `/etc/jail.conf.d/` will be overrides to these properties.
+A common set of jail rules should be defined in the base `jail.conf`
+file located in `/etc/`. These are properties all subsequent jails
+will have (all properties listed in configuration files in
+`/etc/jail.conf.d/` will be overrides to these properties.
 
 The `/etc/jail.conf` should look something like (your needs may very slightly):
 ```script
@@ -144,18 +147,18 @@ The `/etc/jail.conf` should look something like (your needs may very slightly):
 Configuration for `jcreate` is only so the script knows where to find
 the userland and where to extract it to.
 
-The default `jcreate.conf` confuration file should contain the following variables.
+The default `jcreate.conf` configuration file should contain the following variables.
 
 * `media.path` (REQUIRED) - A location to where the userland.
 * `containers.path` (REQUIRED) - A location where to extract the userland (where the jail will reside)
 * `containers.conf` (REQUIRED) - A location where to store the jail configuration files.
 
 ## TEMPLATE CONFIGURATION
-Each jail may require different properties and each template configutaion can have their own set of values defined with the following variables.
+Each jail may require different properties and each template configuration can have their own set of values defined with the following variables.
 
 * `jail.name` (REQUIRED) - The name of the jail
 * `jail.epairid` (REQUIRED) - This is the last few digits of the jails IP address.
-* `jail.packages` (OPTIONAL) - A file with a list of packages to be istalled via the host system.
+* `jail.packages` (OPTIONAL) - A file with a list of packages to be installed via the host system.
 * `jail.mounts` (OPTIONAL) - The file which contains the mount locations.
 * `jail.config` (OPTIONAL) - The configuration script to be copied into the jail and executed.
 * `jail.mlock=1` (OPTIONAL) - Allow jail to mlock.
@@ -166,7 +169,7 @@ Each jail may require different properties and each template configutaion can ha
 * `jail.poststart` (OPTIONAL) - Command(s) to run in the system environment after a jail is created, and after any exec.start commands have completed.
 * `jail.prestop` (OPTIONAL) - Command(s) to run in the system environment before a jail is removed.
 
-A template with only the required vaiables, `jcreate` will create a conf file that will look as simple as:
+A template with only the required variables, `jcreate` will create a conf file that will look as simple as:
 ```
 myjail {
     # NETWORKS/INTERFACES
@@ -222,7 +225,7 @@ scripts called `script-writer`. Pass this script some arguments and it
 will print out the commands necessary to complete those tasks.
 
 This script is NOT meant to be perfect or exhaustive, it's only goal
-is to offer a starting point from which futher, more fine grained
+is to offer a starting point from which further, more fine grained
 additions, can be made.
 
 ## USAGE
@@ -289,7 +292,7 @@ helper setup script that can be installed into the jail to run):
 
 1.  Commit each file as changes are made.
 2.  Do not commit files in batch.
-3.  Please prefix all commits with the file you are commiting.
+3.  Please prefix all commits with the file you are committing.
 4.  Separate subject from body with a blank line
 5.  Limit the subject line to 50 characters
 6.  Capitalize the subject line
