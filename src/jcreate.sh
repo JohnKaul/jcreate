@@ -334,7 +334,7 @@ run_setup_script() {    #{{{
                                         $(get_file_contents_without_comments ${jail_packages})
                         fi
 
-                        if [ "${_script##*.}" == ".sh" ]; then
+                        if [ "${_script##*.}" == "sh" ]; then
                                 echo "Copying in the setup script"
                                 cp "${_script}" "${_jail_path}/jailsetup.sh"
                                 chown root:wheel "${_jail_path}/jailsetup.sh"
@@ -342,7 +342,7 @@ run_setup_script() {    #{{{
                                 echo "Configuring jail"
                                 jexec ${jail_name} '/jailsetup.sh'
                         fi
-                        if ! [ "${_script##*.}" == ".sh" ]; then
+                        if ! [ "${_script##*.}" == "sh" ]; then
                                 run_setup_scripts_from_stdin < "${_script}"
                         fi
                         service jail stop ${jail_name}
