@@ -1,16 +1,5 @@
 #!/bin/sh
 
-# TODO:
-# 1. Implement a `exec.poststart` variable.
-#       -e.g. exec.poststart += "cp /var/jails/jobs/plex.crontab /etc/cron.d/plex.crontab";
-# 2. Implement a `exec.prestop` variable.
-#       -e.g. exec.prestop += "rm /etc/cron.d/plex.crontab";
-# 3. Implement a `host.postcreate` variable to copy or launch any extra scripts
-#    that do setup on the host.
-#       -e.g. host.postcreate = "host_setup_script.sh"
-#             ~ which will create directories or copy setup scripts for use
-#               in the `exec.poststart` / `exec/prestop` jail.conf variables.
-#
 # SYNOPSIS
 # jcreate.sh <template.conf>
 #
@@ -116,6 +105,9 @@
 #        jail.config=mytemplate.sh
 #        # items to copy into jail.
 #        jail.copyin=mytemplate.d
+#        # A script or command to run on host
+#        # after jail is created.
+#        host.config=run_after.sh
 #
 #        ---->% mytemplate.sh
 #        # Things to setup my jail.
@@ -556,6 +548,22 @@ fi
         jail_poststart="$(config_get jail.poststart ${_template_conf})"
         jail_prestop="$(config_get jail.prestop ${_template_conf})"
 
+        # host.config --
+        # The script or command to run on the host after the jail is created.
+        # This can be used to set meta data in the jail.conf file.
+        # EX
+        #       jail -m ... meta="tag=value" env="configuration"
+        host_post_script="$(config_get host.config ${_template_conf})"
+        # check variable, locate file and validate
+        if assert ${host_post_script}; then
+                host_post_script="$(find ${_template_conf%/*} -type f -name "${host_post_script}")"
+                host_post_script="$(readlink -f ${host_post_script})"
+                if ! validate ${host_post_script}; then
+                        err "Specified host post jail setup script is not valid"
+                        exit 1
+                fi
+        fi
+
 ##
 ## Jail Creating.
 ##  At this point in the script all the variables should be asserted
@@ -710,4 +718,8 @@ if assert ${jail_msg} && validate ${jail_msg}; then
     do
         echo "$line"
     done
+fi
+
+if assert ${host_post_script}; then
+        exec ${host_post_script}
 fi
