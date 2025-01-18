@@ -686,7 +686,7 @@ To start the jail       : doas service jail start ${jail_name}
 To execute the jail     : doas jexec ${jail_name} /bin/sh
 To destroy the jail     : doas jdestroy ${jail_name}
 To manually destroy the jail:
-        doas chflags -R 0 /usr/local/jails/containers/${jail_name}
+        doas chflags -R 0 ${_container_path}/${jail_name}
         doas rm -rf ${_container_path}/${jail_name}
         doas rm ${_jail_conf_file}
 
@@ -707,7 +707,7 @@ To start the jail       : doas service jail start ${jail_name}
 To execute the jail     : doas jexec ${jail_name} /bin/sh
 To destroy the jail     : doas jdestroy ${jail_name}
 To manually destroy the jail:
-        doas chflags -R 0 /usr/local/jails/containers/${jail_name}
+        doas chflags -R 0 ${_container_path}/${jail_name}
         doas rm -rf ${_container_path}/${jail_name}
         doas rm ${_jail_conf_file}
 _EOF_
