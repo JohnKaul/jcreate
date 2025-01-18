@@ -556,11 +556,13 @@ fi
         host_post_script="$(config_get host.config ${_template_conf})"
         # check variable, locate file and validate
         if assert ${host_post_script}; then
-                host_post_script="$(find ${_template_conf%/*} -type f -name "${host_post_script}")"
-                host_post_script="$(readlink -f ${host_post_script})"
-                if ! validate ${host_post_script}; then
-                        err "Specified host post jail setup script is not valid"
-                        exit 1
+                if [ "${host_post_script##*.}" == "sh" ]; then
+                        host_post_script="$(find ${_template_conf%/*} -type f -name "${host_post_script}")"
+                        host_post_script="$(readlink -f ${host_post_script})"
+                        if ! validate ${host_post_script}; then
+                                err "Specified host post jail setup script is not valid"
+                                exit 1
+                        fi
                 fi
         fi
 
