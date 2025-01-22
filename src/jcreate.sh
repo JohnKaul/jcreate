@@ -403,12 +403,9 @@ check_mounts() {        #{{{
    local _where=$2
 
    # Read any mountings
-   if ! assert ${_mounts}; then
-           cat "${_mounts}" | while read line
-   do
-           echo "  $line" >> $_where
-   done
-   fi
+   while IFS= read -r line; do
+        echo "  $line" >> "${_where}"
+   done < "${_mounts}"
 }
 #}}}
 
@@ -425,6 +422,16 @@ makedir() {     #{{{
 
 ##
 ## ENVIRONMENT CHECK
+
+# Support a "dry-run" option for this script.
+DRY_RUN=0
+while getopts ":d" opt; do
+  case $opt in
+    d) DRY_RUN=1 ;;
+    \?) echo "Invalid option: -$OPTARG"; exit 1 ;;
+  esac
+done
+shift "$((OPTIND-1))"
 
 # Make sure we are run as root.
 test_root
@@ -507,10 +514,12 @@ fi
         fi
 
         jail_mounts="$(config_get jail.mounts ${_template_conf})"
-        # check variable, locate file and validate
         if assert ${jail_mounts}; then
+                # locate file and validate
                 jail_mounts="$(find ${_template_conf%/*} -type f -name "${jail_mounts}")"
                 jail_mounts="$(readlink -f ${jail_mounts})"
+        else
+                prompt "Specified jail mounts file is not valid"
         fi
 
         jail_copyin="$(config_get jail.copyin ${_template_conf})"
@@ -578,6 +587,96 @@ _jail_conf_file=${_container_conf}/${jail_name}.conf
 # The logfile which keep information for later reference.
 logfile=/var/log/jail_create_${jail_name}.log
 echo "----------------------------------------x- $(date +'%Y-%m-%d %H:%M:%S') -x------" >> ${logfile}
+
+##
+## Begin Dry-run option
+##  if the dry run option is given, execeute the following and exit the script.
+
+
+# Check if dry-run flag is set
+
+if [ $DRY_RUN -eq 1 ]; then
+  # Print jail.conf file to stdout
+#  echo "----------------------------------------x- $(date +'%Y-%m-%d %H:%M:%S') -x------"
+
+  cat <<_EOF_ >&1
+-- DRY-RUN: REPORT --
+(the infomation this script knows about based on the configuration file)
+
+Media path                        : ${_userland_path}
+Container path                    : ${_container_path}/${jail_name}
+Container config                  : ${_jail_conf_file}
+System Jail name                  : ${jail_name}
+System Jail epairid               : ${jail_epairid}
+System Jail IP                    : 192.168.0.${jail_epairid}
+Specified Jail config             : ${_jail_conf_file}
+Specified Jail setup script       : ${jail_setup_script}
+Specified Jail mount config       : ${jail_mounts}
+Specified Jail copy-in dir        : ${jail_copyin}
+Specified Jail message file       : ${jail_msg}
+Specified Jail package file       : ${jail_packages}
+Specified Jail poststart          : ${jail_poststart}
+Specified Jail prestop            : ${jail_prestop}
+Specified Hoost post creat script : ${host_post_script}
+
+-- DRY-RUN: CONFIGURATION --
+(this is how the jail's configuration file will be written)
+
+_EOF_
+  echo "${jail_name} {"
+  echo "  # NETWORKS/INTERFACES"
+  echo "  \$id = \"${jail_epairid}\";"
+
+   if assert ${jail_systemv}; then
+           if [ ${jail_systemv} == "1" ]; then
+                   echo "  allow.sysvipc = 1;"
+           fi
+   fi
+
+   if assert ${jail_sysvmsg}; then
+           if [ ${jail_sysvmsg} == "new" ]; then
+                   echo "  sysvmsg = new;"
+           fi
+   fi
+
+   if assert ${jail_sysvsem}; then
+           if [ ${jail_sysvsem} == "new" ]; then
+                   echo "  sysvsem = new;"
+           fi
+   fi
+
+   if assert ${jail_sysvshm}; then
+           if [ ${jail_sysvshm} == "new" ]; then
+                   echo "  sysvshm = new;"
+           fi
+   fi
+
+   if assert ${jail_mlock}; then
+           if [ $jail_mlock == "1" ]; then
+                   echo "  exec.stop  = \"\";"
+                   echo "  allow.mlock;"
+           fi
+   fi
+  
+  if assert ${jail_mounts}; then
+          while IFS= read -r line; do
+                  echo "  $line"
+          done < "${jail_mounts}"
+  fi
+
+  if assert ${jail_poststart}; then
+    echo "  exec.poststart += ${jail_poststart};"
+  fi
+  if assert ${jail_prestop}; then
+    echo "  exec.prestop += ${jail_prestop};"
+  fi
+
+  echo "}"
+  exit 0
+fi
+
+## End Dry-run
+## 
 
 # LOGIC:
 # - If the userland already exists, skip extracting; this could be
@@ -653,12 +752,13 @@ cat <<_EOF_ >${_jail_conf_file}
 ${jail_name} {
   # NETWORKS/INTERFACES
   \$id = "${jail_epairid}";
-  #\$ip = $ip.${jail_epairid};
 _EOF_
 
 check_sysv ${_jail_conf_file}
 check_mlock ${jail_mlock} ${_jail_conf_file}
-check_mounts ${jail_mounts} ${_jail_conf_file}
+if [ -n "${jail_mounts}" ] && validate ${jail_mounts}; then
+    check_mounts ${jail_mounts} ${_jail_conf_file}
+fi
 
 if assert ${jail_poststart}; then
         echo "exec.poststart += ${jail_poststart};"
