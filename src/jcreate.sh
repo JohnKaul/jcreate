@@ -815,11 +815,11 @@ _EOF_
 # jail.msg --
 # Read the message file and echo the results
 if assert ${jail_msg} && validate ${jail_msg}; then
-   printf -- "\n -- MESSAGE --"
-   cat "${jail_msg}" | while read line
-    do
-        echo "$line"
-    done
+        printf -- "\n -- MESSAGE --"
+        while IFS= read -r line; do
+                echo "  $line"
+                echo "  $line" >> ${logfile}
+        done < "${jail_msg}"
 fi
 
 if assert ${host_post_script}; then
