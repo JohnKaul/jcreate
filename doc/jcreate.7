@@ -7,9 +7,17 @@
 jcreate -- a program to create jail.conf type jails.
 .Pp
 .Sh  SYNOPSIS
-jcreate template.conf
+jcreate [-d] template.conf
 .Pp
 jdestroy jail_name
+.Pp
+.Sh  OPTIONS
+.Bl -tag -width Ds
+.It Fl d
+dry-run (A jail.conf file is constructed and printed to STDOUT,
+based on <template.conf>, for review. A jail is NOT
+constructed).
+.El
 .Pp
 .Sh  DESCRIPTION
 This script will set up a jail (extract userland, copy in directories, run setup scripts, and install packages) and create a `<jailname>.conf` jail configuration file in `/etc/jail.conf.d/` based on a config file which contains the jail name, epairid, mount points, packages to install, and setup scripts.
@@ -81,6 +89,11 @@ A file with multiple scripts should allow for a few different maintenance/setup 
 .It Fl  jail.prestop
 .Em OPTIONAL
 : Command(s) to run in the system environment before a jail is removed.
+.Pp
+.It Fl  host.config
+.Em OPTIONAL
+: The script or command to run on the host after the jail is created. This can be used, for example, to set meta data in the jail.conf file or call a script to execute. 
+.Pp
 .El
 .Pp
 .Em Example
@@ -108,8 +121,8 @@ mounts file:
      *    These are the mount directories for
      *    the `mytemplate` jail.
      */
-    mount += \\"hostdir1 $path/jaildir1 nulfs 0 0\\";
-    mount += \\"hostdir2 $path/jaildir2 nulfs 0 0\\";
+    mount += "hostdir1 $path/jaildir1 nulfs 0 0";
+    mount += "hostdir2 $path/jaildir2 nulfs 0 0";
 .Ed
 .Pp
 .Em Example
@@ -313,4 +326,3 @@ Created for my personal use.
 .Pp
 .Sh  AUTHOR
 John Kaul (john.kaul@outlook.com)
-
