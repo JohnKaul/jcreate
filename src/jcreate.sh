@@ -751,7 +751,7 @@ cat <<_EOF_ >${_jail_conf_file}
 
 ${jail_name} {
   # NETWORKS/INTERFACES
-  \$id = "${jail_epairid}";
+  \$id = ${jail_epairid};
 _EOF_
 
 check_sysv ${_jail_conf_file}
