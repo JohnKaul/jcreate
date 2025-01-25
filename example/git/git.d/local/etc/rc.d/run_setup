@@ -1,0 +1,76 @@
+#!/bin/sh
+
+# PROVIDE: run_setup
+# REQUIRE:
+# KEYWORD:
+#
+# This script allows for the running of setup scripts to be run upon
+# startup (boot)  # to make setup configurations easier.
+#
+# WARNING: This rc.d script has the potential for abuse! Still not
+#          totally convinced this is a good idea or how it can be
+#          guarded.
+#
+# Add the following lines to the `rc.conf` file:
+#       run_setup_path="/setup_script.sh"       # Script to run
+#       run_setup_enable="YES"                  # Enable/Disable setup script execution
+#
+# This script also allows for symlinks:
+#       ln -s run_setup /usr/local/etc/rc.d/run_setup_sshd
+#       sysrc run_setup_sshd_enable=YES
+#       sysrc fun_setup_sshd_path="/setup_sshd.sh"
+#       service run_setup_sshd start
+
+. /etc/rc.subr
+
+case $0 in
+        /etc/rc*)
+                # durring boot $0 is /etc/rc, so get
+                # the name of th script from $_file.
+                name=$_file
+                ;;
+        *)
+                name=$0
+                ;;
+esac
+
+name=${name##*/}
+rcvar=${name}_enable
+rcpath=${name}_path
+desc="Run a script upon boot"
+
+load_rc_config "$name"
+
+eval "${rcvar}=\${${rcvar}:-'NO'}"
+eval "_path=\${${rcpath}:-''}"
+
+start_cmd="run_setup_wrapper"
+stop_cmd=":"                    # no stop command
+restart_cmd=":"                 # no restart command
+status_cmd=":"                  # no status command
+
+run_setup_start() {
+  if checkyesno "${name}_enable"; then
+    logger -p local0.notice -t ${name} "Staring setup script: ${_path}"
+    /rescue/sh "${_path}"
+  fi
+}
+
+run_setup_finish() {
+  # Disable the setup script execution in the rc.conf file
+  sysrc ${name}_enable="NO"
+
+  logger -p local0.notice -t ${name} "Finished running setup script: ${_path}"
+}
+
+run_setup_wrapper() {
+  if checkyesno "${name}_enable"; then
+    run_setup_start
+    run_setup_finish
+  else
+    warn "Setup script is not enabled: ${_path}"
+    logger -p local0.err -t ${name} "Setup script is not enabled: ${_path}"
+  fi
+}
+
+run_rc_command "$1"
