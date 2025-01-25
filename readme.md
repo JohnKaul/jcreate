@@ -80,8 +80,8 @@ For example: `~/jail_configurations/`
     |       |
     ...
 ```
-The examples directory in this repository contains two (2) simple
-examples. 
+The examples directory in this repository contains a few simple
+examples.
 
 After configurations are created (re)creating jails can be done with a
 single command.
