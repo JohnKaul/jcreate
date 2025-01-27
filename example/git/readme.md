@@ -67,7 +67,7 @@ intialization of bare repositories (something like below).
         # gitinit --
         # This script will accept a option for a repository and a description to create.
         #
-        # If no 'group' is included, it will default to 'john'.
+        # If no 'group' is included, it will default to 'ungrouped'.
         # If no 'description' is included, then this script defaults to: '(no description)'
         #
         # SYNOPSYS
