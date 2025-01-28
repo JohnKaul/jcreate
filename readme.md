@@ -8,7 +8,7 @@ Author:  John Kaul <john.kaul@outlook.com>
 
 ## BRIEF
 
-`jcreate` configfile
+`jcreate` [-d] configfile
 
 `jdestroy` jailname
 
@@ -19,6 +19,9 @@ Author:  John Kaul <john.kaul@outlook.com>
 ## DESCRIPTION
 A few shell scripts to create/destroy classic jails in FreeBSD with a
 `jail.conf` file located in `/etc/jail.conf.d/`.
+
+## OPTIONS
+     -d   dry-run (A jail.conf file is constructed and printed to STDOUT, based on <template.conf>, for review. A jail is NOT constructed).
 
 ### JCREATE
 This script will create a classic jail by extracting a userland and
