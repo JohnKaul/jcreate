@@ -597,7 +597,9 @@ echo "----------------------------------------x- $(date +'%Y-%m-%d %H:%M:%S') -x
 
 if [ $DRY_RUN -eq 1 ]; then
   # Print jail.conf file to stdout
-#  echo "----------------------------------------x- $(date +'%Y-%m-%d %H:%M:%S') -x------"
+  
+  ip=$(config_get \$ip /etc/jail.conf)
+  ip=$(echo $ip | awk -F"." '{print $1"."$2"."$3}' | cut -d '"' -f 2-)
 
   cat <<_EOF_ >&1
 -- DRY-RUN: REPORT --
@@ -608,7 +610,7 @@ Container path                    : ${_container_path}/${jail_name}
 Container config                  : ${_jail_conf_file}
 System Jail name                  : ${jail_name}
 System Jail epairid               : ${jail_epairid}
-System Jail IP                    : 192.168.0.${jail_epairid}
+System Jail IP                    : ${ip}.${jail_epairid}
 Specified Jail config             : ${_jail_conf_file}
 Specified Jail setup script       : ${jail_setup_script}
 Specified Jail mount config       : ${jail_mounts}
@@ -779,7 +781,7 @@ Container path          : ${_container_path} ${jail_name}
 Container config path   : ${_container_conf}
 Jail name               : ${jail_name}
 Jail epairid            : ${jail_epairid}
-Jail IP                 : 192.168.0.${jail_epairid}
+Jail IP                 : ${ip}.${jail_epairid}
 Jail config             : ${_jail_conf_file}
 -- MAINTENCE --
 To start the jail       : doas service jail start ${jail_name}
@@ -800,7 +802,7 @@ Container path          : ${_container_path} ${jail_name}
 Container config path   : ${_container_conf}
 Jail name               : ${jail_name}
 Jail epairid            : ${jail_epairid}
-Jail IP                 : 192.168.0.${jail_epairid}
+Jail IP                 : ${ip}.${jail_epairid}
 Jail config             : ${_jail_conf_file}
 -- MAINTENCE --
 To start the jail       : doas service jail start ${jail_name}
