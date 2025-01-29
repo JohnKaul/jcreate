@@ -63,7 +63,7 @@ In addition or as an alternate to the above, a script can be used for
 intialization of bare repositories (something like below).
 ```bash
         #!/bin/sh
-        
+
         # gitinit --
         # This script will accept a option for a repository and a description to create.
         #
@@ -76,7 +76,7 @@ intialization of bare repositories (something like below).
         desc=$2
         user=ungrouped
         directory="./"
-        
+
         # aif --
         #   Aniphoric if.
         #	This function will check an `expr` is not NULL before returned,
@@ -92,31 +92,31 @@ intialization of bare repositories (something like below).
                         echo "$iffalse";
                 fi
         }
-        
+
         group=$(echo "${name}" | awk -F "/" '{print $1}')
         name=$(aif                                              \
                 "$(echo "${name}" | awk -F "/" '{print $2}')"   \
                 "${name}")
-        
+
         if [ "${group}" = "${name}" ]; then
                 group=${user}
         fi
-        
+
         if [ -z "${desc}" ]; then
                 desc="(no description)"
         fi
-        
+
         mkdir -pv "${directory}${group}"                || { echo "Error creating directory"; exit 1; }
         cd "${directory}${group}"                       || { echo "Error changing directory"; exit 1; }
         git init --bare -q ${name}.git                  || { echo "Error creating git directory"; exit 1; }
         echo "${desc}" > "${name}.git/description"      || { echo "Error writing description"; exit 1; }
-        
+
         cat <<_EOF_ >&1
         The project repository for "${name}" was created in the following group: "${group}".
         However, the repository for this project is empty.
-        
+
         Command line instructions:
-        
+
         Create a new repository
             git clone git@${server}:${group}/${name}.git
             cd ${name}
@@ -124,7 +124,7 @@ intialization of bare repositories (something like below).
             git add readme.md
             git commit -m "add readme.md"
             git push -u origin master
-        
+
         Push an existing folder
             cd existing_folder
             git init
@@ -132,7 +132,7 @@ intialization of bare repositories (something like below).
             git add .
             git commit -m "Initial commit"
             git push -u origin master
-        
+
         Push an existing Git repository
             cd existing_repo
             git remote rename origin old-origin
@@ -171,9 +171,9 @@ the directories.
 Or a simple script (something like below) can be used to list the git repositories.
 ```bash
         #!/bin/sh
-        
+
         # gitls --
-        # This script will list all the <name>.git--while skipping the 
+        # This script will list all the <name>.git--while skipping the
         # <name>.wiki.git--directories and read the the "description" file.
         printf -- "%-36s %-52s %-30s\n" "NAME" "CLONE" "DESCRIPTION"
         find . -type d -name \*.git -not -name \*.wiki.git -print -prune | sort | while read d; do
@@ -204,5 +204,72 @@ Or a simple script (something like below) can be used to list the git repositori
                 -i ~/.ssh/id_ed25519 \
                 192.168.0.202 \
                 -t "~/gitls"
+        }
+```
+
+### BONUS FEATURE: Gitlog
+To view repository logs a hybrid of the `gitinit` script can be made
+in which the logs for a repository can be viewed from the server.
+
+I have added some fancy formatting and colors to the log output (which
+can be removed/replaced).
+
+1. Place the following script on the git server.
+
+```bash
+    #!/bin/sh
+
+    # This script will show the logs for a repo.
+    #
+    # If no 'group' is included, it will default to 'ungrouped'.
+    #
+    # SYNOPSYS
+    #       gitlog [group/]<repository>
+
+    name=$1
+    user=ungrouped
+    directory="./"
+
+    # aif --
+    #   Aniphoric if.
+    #	This function will check an `expr` is not NULL before returned,
+    #	otherwise an `iffalse` value is returned.
+    # EX
+    #		var=$(aif $(some_expr) 7)
+    aif() {		#{{{
+            local expr=$1
+            local iffalse=$2
+            if [ -n "$expr" ] && [ "$expr" != "-" ]; then
+                    echo "$expr";
+            else
+                    echo "$iffalse";
+            fi
+    }
+    #}}}
+
+    group=$(echo "${name}" | awk -F "/" '{print $1}')
+    name=$(aif "$(echo "${name}" | awk -F "/" '{print $2}')" "${name}")
+
+    if [ "${group}" = "${name}" ]; then
+            group=${user}
+    fi
+
+    cd "${directory}${group}/${name}.git"            || { echo "Error changing directory"; exit 1; }
+    git log --graph --abbrev-commit --decorate --format=format:'%C(blue)%h%C(reset) - %C(cyan)%aD%C(reset) %C(green)(%ar)%C(reset)%C(auto)%d%C(reset)%n''%C(bold white)%s%C(reset) %C(dim white) -  %an%C(reset)%n%n''%C(white)%b%C(reset)'
+```
+
+2. Create a function in a shells configration file to call that script on the server.
+   The following example is for ZSH.
+```bash
+        # gitlog --
+        #   Call the 'gitlog' shell script on the git server to
+        #   list out the log.
+        function gitls() {
+                ssh \
+                -p 22 \
+                -l git \
+                -i ~/.ssh/id_ed25519 \
+                192.168.0.202 \
+                -t "~/gitlog $1"
         }
 ```
