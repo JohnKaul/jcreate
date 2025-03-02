@@ -109,6 +109,7 @@ intialization of bare repositories (something like below).
         mkdir -pv "${directory}${group}"                || { echo "Error creating directory"; exit 1; }
         cd "${directory}${group}"                       || { echo "Error changing directory"; exit 1; }
         git init --bare -q ${name}.git                  || { echo "Error creating git directory"; exit 1; }
+        echo "ref: refs/heads/main" > ./${name}.git/HEADS || { echo "Error setting main branch in HEADS file" ; exit 1; }
         echo "${desc}" > "${name}.git/description"      || { echo "Error writing description"; exit 1; }
 
         cat <<_EOF_ >&1
