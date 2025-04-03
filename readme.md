@@ -191,6 +191,9 @@ up an admin user (`admin`) with a password of `admin` for ssh access.
 * emby - A template which is slimmed down and packages are installed
   via the host system.
 
+* git - A template which setups up a headless git server. The readme
+  for this example gives alternate/optional helper scripts.
+
 ## INSTALL INSTRUCTIONS
 
 ```bash
