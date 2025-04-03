@@ -425,9 +425,9 @@ makedir() {     #{{{
 
 # Support a "dry-run" option for this script.
 DRY_RUN=0
-while getopts ":d" opt; do
+while getopts ":n" opt; do
   case $opt in
-    d) DRY_RUN=1 ;;
+    n) DRY_RUN=1 ;;
     \?) echo "Invalid option: -$OPTARG"; exit 1 ;;
   esac
 done
