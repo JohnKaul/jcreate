@@ -92,6 +92,21 @@ single command.
     # doas jcreate ~/jail_configuraitons/myjail1/myjail1.conf
 ```
 
+_NOTE_
+To create a custom userland which could simplify configurations for all other jails, a simple configuration can be made which only sets basic settings (like: adding files to /usr/local/skel, or setting up SSHD, or installing mDNSResponder, etc.) then navigate to zroot/jail/media (or /usr/local/jails/media) and tar up the configured jail for use as a base userland.
+
+```bash
+  # jcreate /path/to/templates/base/base.conf
+  # service jail start base
+  # jexec base
+  ... configure 'base' jail ...
+  # service jail stop base
+  # cd /usr/local/jails/media
+  # chflags -R 0 /usr/local/jails/containers/base
+  # tar -cJf userland.txz -C /usr/local/jail/containers/base/ .
+  # jdestroy base
+```
+
 ### JDESTROY
 This tool simply deletes a jail. The userland container will be
 removed as well as the jail.conf file in the `/etc/jail.conf.d/`
@@ -311,4 +326,4 @@ helper setup script that can be installed into the jail to run):
 Created for my personal use.
 
 ## AUTHOR
-* John Kaul - john.kaul@outlook.com
+* John Kaul
