@@ -118,6 +118,15 @@
 ##
 ## Support procedures.
 
+##
+# usage --
+#   displays usage information.
+usage() {
+    echo "$0 v1.00"
+    echo "$0 [-n] template.conf"
+    exit 0
+}
+
 # err --
 #   all error messages should be directed to `stderr`.
 # EX
@@ -134,6 +143,7 @@ err() {     #{{{
 # Bail out if we don't have root privileges.
 test_root() {           #{{{
         if [ $(id -u) -ne 0 ]; then
+                usage
                 err "This script must be run as root or else jail will fail to be created."
                 exit 1
         fi
@@ -423,18 +433,28 @@ makedir() {     #{{{
 ##
 ## ENVIRONMENT CHECK
 
+# check to see if we have enough arguments.
+if [ $# -lt 1 ]; then 
+    usage
+    exit 1
+fi
+
 # Support a "dry-run" option for this script.
 DRY_RUN=0
-while getopts ":n" opt; do
+while getopts ":n:h" opt; do
   case $opt in
     n) DRY_RUN=1 ;;
-    \?) echo "Invalid option: -$OPTARG"; exit 1 ;;
+    h) usage; exit 0 ;;
+    \?) echo "Invalid option: -$OPTARG"; usage; exit 1 ;;
   esac
 done
 shift "$((OPTIND-1))"
 
 # Make sure we are run as root.
-test_root
+if [ $DRY_RUN -lt 1 ]; then 
+    test_root
+fi
+
 # Make sure we can at least find the /etc/jail.conf file. For
 # simplicity, I assume it is set up.
 if ! validate $(find /etc/ -type f -name 'jail.conf'); then
@@ -475,6 +495,17 @@ fi
         if ! assert ${_container_conf} || ! validate ${_container_conf}; then
                 err "invalid jail container configuration path"
                 exit 1
+        fi
+
+#        # TODO: - Check the '${_template_conf} for a 'media.path'
+#        #         variable to overwrite the one kept in the '{_jcreate_conf}'
+#        #         file.
+#        #       ~ This will allow for custom bases to be established
+#        #         and used for jail creating. i.e., each jail type
+#        #         (media/service/etc.) can have a custom base.
+        _tmp_userland_path=$(config_get media.path ${_template_conf})
+        if assert ${_tmp_userland_path} && validate ${_tmp_userland_path}; then
+                _userland_path=${_tmp_userland_path}
         fi
 
         jail_name=$(config_get jail.name ${_template_conf})
@@ -605,21 +636,21 @@ if [ $DRY_RUN -eq 1 ]; then
 -- DRY-RUN: REPORT --
 (the infomation this script knows about based on the configuration file)
 
-Media path                        : ${_userland_path}
-Container path                    : ${_container_path}/${jail_name}
-Container config                  : ${_jail_conf_file}
-System Jail name                  : ${jail_name}
-System Jail epairid               : ${jail_epairid}
-System Jail IP                    : ${ip}.${jail_epairid}
-Specified Jail config             : ${_jail_conf_file}
-Specified Jail setup script       : ${jail_setup_script}
-Specified Jail mount config       : ${jail_mounts}
-Specified Jail copy-in dir        : ${jail_copyin}
-Specified Jail message file       : ${jail_msg}
-Specified Jail package file       : ${jail_packages}
-Specified Jail poststart          : ${jail_poststart}
-Specified Jail prestop            : ${jail_prestop}
-Specified Hoost post creat script : ${host_post_script}
+Media path                       : ${_userland_path}
+Container path                   : ${_container_path}/${jail_name}
+Container config                 : ${_jail_conf_file}
+System Jail name                 : ${jail_name}
+System Jail epairid              : ${jail_epairid}
+System Jail IP                   : ${ip}.${jail_epairid}
+Specified Jail config            : ${_jail_conf_file}
+Specified Jail setup script      : ${jail_setup_script}
+Specified Jail mount config      : ${jail_mounts}
+Specified Jail copy-in dir       : ${jail_copyin}
+Specified Jail message file      : ${jail_msg}
+Specified Jail package file      : ${jail_packages}
+Specified Jail poststart         : ${jail_poststart}
+Specified Jail prestop           : ${jail_prestop}
+Specified Host post creat script : ${host_post_script}
 
 -- DRY-RUN: CONFIGURATION --
 (this is how the jail's configuration file will be written)
