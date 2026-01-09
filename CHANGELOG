@@ -1,0 +1,12 @@
+v1.0  - 2026-01-08
+==================
+
+- Added CHANGLOG to project for easy reporting of new features.
+- Added optional 'media.path' variable in template.conf to override the
+  media.path variable set in jcreate.conf. This should allow multiple
+  different bases to be used for different types of jails (e.g., "media",
+  "tiny", "minimal", "developer", etc. type jails).
+- Added a "program version number" to project.
+- Added a typical "usage" disply when incorrect number of arguments are given.
+- Added ability to run "dry run" (-n option) as user instead of
+  requiring elevated permissions.
