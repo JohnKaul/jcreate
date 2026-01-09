@@ -3,23 +3,27 @@
 .Os
 .Au John Kaul
 .Pp
-.Sh  NAME
-jcreate -- a program to create jail.conf type jails.
+.Sh NAME
+.Nm jcreate 
+.Nd a program to create jail.conf type jails.
 .Pp
-.Sh  SYNOPSIS
+.Sh SYNOPSIS
 jcreate [-n] template.conf
 .Pp
 jdestroy jail_name
 .Pp
-.Sh  OPTIONS
+.Sh OPTIONS
 .Bl -tag -width Ds
 .It Fl n
 dry-run (A jail.conf file is constructed and printed to STDOUT,
 based on <template.conf>, for review. A jail is NOT
 constructed).
+.It template.conf
+A configuration file that contains the required variables defined
+below.
 .El
 .Pp
-.Sh  DESCRIPTION
+.Sh DESCRIPTION
 This script will set up a jail (extract userland, copy in directories, run setup scripts, and install packages) and create a `<jailname>.conf` jail configuration file in `/etc/jail.conf.d/` based on a config file which contains the jail name, epairid, mount points, packages to install, and setup scripts.
 .Pp
 The userland extraction step is skipped if the jail container already exists, which aids in jail maintenance and/or use of thin jails.
@@ -28,27 +32,27 @@ Packages can either be installed from the host system (via the `jail.packages` v
 .Pp
 Mount points--specified in the `jail.mounts` variable/file--within the jail are added to the `<jailname>.conf` file.  It is assumed that the setup script will create the necessary directories to support the mounts.
 .Pp
-.Sh  JAIL TEMPLATE CONFIGURATION
+.Sh JAIL TEMPLATE CONFIGURATION
 Variables are marked as REQUIRED or OPTIONAL.
 .Pp
 .Bl -tag -width Ds
-.It Fl jail.name
+.It jail.name
 .Em REQUIRED
 : The name of the jail
 .Pp
-.It Fl jail.epairid
+.It jail.epairid
 .Em REQUIRED
 : This is the last few digits of the jails IP address.
 .Pp
-.It Fl jail.packages
+.It jail.packages
 .Em OPTIONAL
 : A file with a list of packages to be installed from the host system. The file should contain a package one per line.
 .Pp
-.It Fl jail.mounts
+.It jail.mounts
 .Em OPTIONAL
 : The file which contains the mount locations. These mounts get added to to the `<jailname>.conf` file in the `/etc/jail.conf.d/` directory.
 .Pp
-.It Fl jail.config
+.It jail.config
 .Em OPTIONAL
 : A configuration script or a file with a list of scripts to be copied into the jail and executed. A file with a list of scripts should contain one script per line (commented lines with a hash [#] are ignored).
 .Pp
@@ -58,44 +62,49 @@ A file with multiple scripts should allow for a few different maintenance/setup 
 .Pp
 2. Package configurations can be kept in separate scripts–for easier maintenance (or whatever reason)–and loaded separately and run in a specific order -e.g. “database.sh”, “serversetup.sh”, “appsetup.sh”.
 .Pp
-.It Fl  jail.copyin
+.It jail.copyin
 .Em OPTIONAL
 : Files to copy in relative to the jail's `/usr` directory.
 .Pp
-.It Fl  jail.mlock=1
+.It jail.mlock=1
 .Em OPTIONAL
 : Allow jail to mlock.
 .Pp
-.It Fl  jail.systemv=1
+.It jail.systemv=1
 .Em OPTIONAL
 : Allow all three `sysvmsg`, `sysvsem`, and `sysvshm` options.
 .Pp
-.It Fl  jail.sysvmsg=new
+.It jail.sysvmsg=new
 .Em OPTIONAL
 : Allow access to SYSV IPC message primitives.  If set to “inherit”, all IPC objects on the system are visible to this jail, whether they were created by the jail itself, the base system, or other jails.  If set to “new”, the jail will have its own key namespace, and can only see the objects that it has created; the system (or parent jail) has access to the jail's objects, but not to its keys.  If set to “disable”, the jail cannot perform any sysvmsg-related system calls.
 .Pp
-.It Fl  jail.sysvsem=new
+.It jail.sysvsem=new
 .Em OPTIONAL
 : Allow access to SYSV IPC semaphore and shared memory primitives, in the same manner as sysvmsg.
 .Pp
-.It Fl  jail.sysvshm=new
+.It jail.sysvshm=new
 .Em OPTIONAL
 : Allow access to SYSV IPC semaphore and shared memory primitives, in the same manner as sysvmsg.
 .Pp
-.It Fl  jail.poststart
+.It jail.poststart
 .Em OPTIONAL
 : Command(s) to run in the system environment after a jail is created, and after any exec.start commands have completed.
 .Pp
-.It Fl  jail.prestop
+.It jail.prestop
 .Em OPTIONAL
 : Command(s) to run in the system environment before a jail is removed.
 .Pp
-.It Fl  host.config
+.It host.config
 .Em OPTIONAL
-: The script or command to run on the host after the jail is created. This can be used, for example, to set meta data in the jail.conf file or call a script to execute. 
+: The script or command to run on the host after the jail is created. This can be used, for example, to set meta data in the jail.conf file or call a script to execute.
+.Pp
+.It media.path
+.Em OPTIONAL
+: Override the `media.path` variable found in the `jcreate.conf` file. This override allows for the use of a per-jail-template-system so it is possible to have custom base images for different jail types (e.g. "media", "service", "developer", etc. type base images).
 .Pp
 .El
 .Pp
+.Sh TEMPLATE CONFIGURATION
 .Em Example
 template.conf:
 .Bd -literal -offset indent
@@ -199,7 +208,7 @@ setup.sh:
     chmod 754 /home/admin
 .Ed
 .Pp
-.Sh  COMMENTS
+.Sh COMMENTS
 Configuraation files can contain comments in the common C, and shell format.
 .Pp
 .Em Example
@@ -215,23 +224,25 @@ File comments:
 Comments are legal wherever whitespace is allowed, -i.e. anywhere EXCEPT in the middle of a string or a token.
 .Pp
 .Pp
-.Sh  JCREATE CONFIGURATION
+.Sh JCREATE CONFIGURATION
 The default `jcreate.conf` confuration file should contain the following variables.
 .Pp
+.El
 .Bl -tag -width Ds
-.It Fl media.path
-.Em REQUIRED
-A location to where the userland.
+.It media.path
+_REQUIRED_
+: A location to where the userland.
 .Pp
-.It Fl containers.path
-.Em REQUIRED
-A location where to extract the userland (where the jail will reside)
+.It containers.path
+_REQUIRED_
+: A location where to extract the userland (where the jail will reside)
 .Pp
-.It Fl containers.conf
-.Em REQUIRED
-A location where to keep the jail configuration files (EX: /etc/jail.conf.d)
+.It containers.conf
+_REQUIRED_
+: A location where to keep the jail configuration files (EX: /etc/jail.conf.d)
 .Pp
 .El
+.Pp
 .Em Example
 jcreate.conf:
 .Bd -literal -offset indent
@@ -243,17 +254,18 @@ jcreate.conf:
 .Ed
 .Pp
 .Pp
-.Sh  LOCATIONS
+.Sh LOCATIONS
 The locations to where the programs are installed.
-.Bl -tag -width Ds
-.It Fl jcreate/jdestroy
+.It jcreate/jdestroy:
 /usr/local/bin
 .Pp
-.It Fl jcreate.conf
+.It jcreate.conf:
 /usr/local/etc
 .El
 .Pp
-.Sh  USERLAND DOWNLOAD (From the FreeBSD Handbook)
+.Sh USERLAND DOWNLOAD
+.Em From the FreeBSD Handbook
+.Pp
 To get started creating jails in FreeBSD 14 we need first download the userland for the release you want the jail to have. The instructions to download the userland can be found in the FreeBSD handbook (copied here for convience).
 .Pp
 In principle, a jail only needs a hostname, a root directory, an IP address, and a userland. The userland for the jail can be obtained from the official FreeBSD download servers. Execute the following command to download the userland
@@ -262,7 +274,7 @@ In principle, a jail only needs a hostname, a root directory, an IP address, and
 .Ed
 .Pp
 .Pp
-.Sh  BASIC JAIL CONFIGURATION
+.Sh BASIC JAIL CONFIGURATION
 The next step is to create a common `jail.conf` file in `/etc/` that will be used by all jail configurations in `/etc/jail.conf.d/`. The last line in the `/etc/jail.conf` file contains an `include` directive for all `<jailname>.conf` files found in the `/etc/jail.conf.d` directory.
 .Pp
 The `/etc/jail.conf` file should look something like (your needs may very slightly):
@@ -308,7 +320,7 @@ The `/etc/jail.conf` file should look something like (your needs may very slight
 .Ed
 .Pp
 .Pp
-.Sh  EXAMPLE USAGE
+.Sh EXAMPLE USAGE
 To create a jail from the example "mytemplate" jail configuration above:
 .Bd -literal -offset indent
     $ doas jcreate /location/to/jail/templates/mytemplate.conf
@@ -319,10 +331,35 @@ To destroy a jail (delete the userland container and the `/etc/jail.conf.d/mytem
     $ doas jdestroy mytemplate
 .Ed
 .Pp
+.Em NOTE
+To create a custom userland which could simplify configurations for all other jail setups, a simple configuration can be made which only sets basic settings (like: adding files to /usr/local/skel, setting up SSH, or installing mDNSResponder, etc.) then navigate to zroot/jail/media (or /usr/local/jails/media) and tar up the configured jail for use as a base userland.
 .Pp
-.Sh  HISTORY
+Create a simple template called 'base' with all the packages, and setup configurations.
+.Pp
+Then:
+.Bd -literal -offset indent
+  # jcreate /path/to/templates/base/base.conf
+  # service jail start base
+  # jexec base
+  ... configure 'base' jail ...
+  # service jail stop base
+  # cd /usr/local/jails/media
+  # chflags -R 0 /usr/local/jails/containers/base
+  # tar -cJf userland.txz -C /usr/local/jail/containers/base/ .
+  # jdestroy base
+.Ed
+.Pp
+Configure the jcreate.conf to point to the newly created userland base
+.Pp
+.Pp
+.Sh EXIT
+Exits 0 on success, and >0 if an error occurs.
+.Pp
+.Sh HISTORY
 Created for my personal use.
 .Pp
 .Pp
-.Sh  AUTHOR
+.Sh AUTHOR
 John Kaul (john.kaul@outlook.com)
+outlook.com)
+.com)
