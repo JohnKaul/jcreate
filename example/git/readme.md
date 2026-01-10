@@ -76,6 +76,7 @@ intialization of bare repositories (something like below).
         desc=$2
         user=ungrouped
         directory="./"
+        server="git"
 
         # aif --
         #   Aniphoric if.

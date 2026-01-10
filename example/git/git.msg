@@ -84,7 +84,8 @@ In addition, a script can be used for intialization of bare repositories (someth
         desc=$2
         user=ungrouped
         directory="./"
-        
+        server="git"
+
         # aif --
         #   Aniphoric if.
         #	This function will check an `expr` is not NULL before returned,
