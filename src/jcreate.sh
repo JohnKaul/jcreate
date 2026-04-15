@@ -585,8 +585,10 @@ fi
                 jail_packages="$(readlink -f ${jail_packages})"
         fi
 
+        jail_prestart="$(config_get jail.prestart ${_template_conf})"
         jail_poststart="$(config_get jail.poststart ${_template_conf})"
         jail_prestop="$(config_get jail.prestop ${_template_conf})"
+        jail_poststop="$(config_get jail.poststop ${_template_conf})"
 
         # host.config --
         # The script or command to run on the host after the jail is created.
@@ -648,8 +650,10 @@ Specified Jail mount config      : ${jail_mounts}
 Specified Jail copy-in dir       : ${jail_copyin}
 Specified Jail message file      : ${jail_msg}
 Specified Jail package file      : ${jail_packages}
+Specified Jail prestart          : ${jail_prestart}
 Specified Jail poststart         : ${jail_poststart}
 Specified Jail prestop           : ${jail_prestop}
+Specified Jail poststop          : ${jail_poststop}
 Specified Host post creat script : ${host_post_script}
 
 -- DRY-RUN: CONFIGURATION --
@@ -697,11 +701,17 @@ _EOF_
           done < "${jail_mounts}"
   fi
 
+  if assert ${jail_prestart}; then
+    echo "  exec.prestart += ${jail_prestart};"
+  fi
   if assert ${jail_poststart}; then
     echo "  exec.poststart += ${jail_poststart};"
   fi
   if assert ${jail_prestop}; then
     echo "  exec.prestop += ${jail_prestop};"
+  fi
+  if assert ${jail_poststop}; then
+    echo "  exec.poststop += ${jail_poststop};"
   fi
 
   echo "}"
@@ -793,12 +803,18 @@ if [ -n "${jail_mounts}" ] && validate ${jail_mounts}; then
     check_mounts ${jail_mounts} ${_jail_conf_file}
 fi
 
+if assert ${jail_prestart}; then
+  echo "  exec.prestart += ${jail_prestart};"
+fi
 if assert ${jail_poststart}; then
         echo "exec.poststart += ${jail_poststart};"
 fi
 
 if assert ${jail_prestop}; then
         echo "exec.prestop += ${jail_prestop};"
+fi
+if assert ${jail_poststop}; then
+  echo "  exec.poststop += ${jail_poststop};"
 fi
 
 echo "}" >> ${_jail_conf_file}
